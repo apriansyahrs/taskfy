@@ -1,0 +1,2 @@
+#include "package:taskfy/package:taskfy/Flutter/Flutter-Debug.xcconfig"
+#include "Warnings.xcconfig"
