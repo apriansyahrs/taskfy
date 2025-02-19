@@ -44,7 +44,7 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
           if (!isMobile) _buildSidebar(isDarkMode, permissions),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildTopBar(user, isDarkMode),
                 Expanded(
@@ -85,9 +85,12 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
                           ]),
                         ),
                       ),
-                      SliverFillRemaining(
-                        hasScrollBody: true,
-                        child: widget.child,
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        sliver: SliverFillRemaining(
+                          hasScrollBody: true,
+                          child: widget.child,
+                        ),
                       ),
                     ],
                   ),
@@ -184,6 +187,7 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
     return AnimatedContainer(
       duration: Duration(milliseconds: 200),
       width: _isSidebarCollapsed ? 70 : 240,
+      padding: EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
         color: isDarkMode ? Color(0xFF1A1A1A) : Colors.white,
         border: Border(
@@ -195,7 +199,6 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
       ),
       child: Column(
         children: [
-          SizedBox(height: 24),
           _buildSidebarHeader(isDarkMode),
           SizedBox(height: 32),
           Expanded(
@@ -319,8 +322,9 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
         onTap: onTap ?? (route != null ? () => context.go(route) : null),
         hoverColor: hoverColor,
         child: Container(
-          height: 44,
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          height: 48,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             color: isActive ? activeColor.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),

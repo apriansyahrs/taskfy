@@ -35,14 +35,14 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final user = ref.watch(authProvider);
     final userEmail = user?.email;
     final userRole = user?.role ?? '';
-    final tasksAsyncValue = ref.watch(taskListProvider(userRole == 'pegawai' ? userEmail : null));
+    final tasksAsyncValue = ref.watch(taskListProvider(userRole == AppConstants.roleEmployee ? userEmail : null));
     final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'Tasks',
       actions: [
-        if (permissions.contains('create_task'))
+        if (permissions.contains(AppConstants.permissionCreateTask))
           ElevatedButton.icon(
             icon: const Icon(Icons.add),
             label: const Text('New Task'),
@@ -85,12 +85,12 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         getTitle: (task) => task.name,
         getStatus: (task) => task.status,
         onStatusChange: (task, newStatus) {
-          if (permissions.contains('update_task_status') && task.assignedTo.contains(currentUser?.email)) {
+          if (permissions.contains(AppConstants.permissionUpdateTaskStatus) && task.assignedTo.contains(currentUser?.email)) {
             ref.read(taskNotifierProvider.notifier).updateTask(task.copyWith(status: newStatus));
           }
         },
-        statuses: ['not_started', 'in_progress', 'completed'],
-        canEdit: (task) => permissions.contains('update_task_status') && task.assignedTo.contains(currentUser?.email),
+        statuses: [AppConstants.taskStatusNotStarted, AppConstants.taskStatusInProgress, AppConstants.taskStatusCompleted],
+        canEdit: (task) => permissions.contains(AppConstants.permissionUpdateTaskStatus) && task.assignedTo.contains(currentUser?.email),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => CustomErrorWidget(message: err.toString()),
@@ -153,7 +153,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 class _StatCards extends StatelessWidget {
   final List<Task> tasks;
 
-  const _StatCards({Key? key, required this.tasks}) : super(key: key);
+  const _StatCards({super.key, required this.tasks});
 
   @override
   Widget build(BuildContext context) {
@@ -164,9 +164,9 @@ class _StatCards extends StatelessWidget {
           runSpacing: 16,
           children: [
             _buildStatCard('Total Tasks', tasks.length.toString(), Icons.assignment, Colors.blue, constraints),
-            _buildStatCard('In Progress', tasks.where((t) => t.status == 'in_progress').length.toString(), Icons.trending_up, Colors.orange, constraints),
-            _buildStatCard('Completed', tasks.where((t) => t.status == 'completed').length.toString(), Icons.check_circle, Colors.green, constraints),
-            _buildStatCard('Overdue', tasks.where((t) => t.deadline.isBefore(DateTime.now()) && t.status != 'completed').length.toString(), Icons.warning, Colors.red, constraints),
+            _buildStatCard('In Progress', tasks.where((t) => t.status == AppConstants.taskStatusInProgress).length.toString(), Icons.trending_up, Colors.orange, constraints),
+            _buildStatCard('Completed', tasks.where((t) => t.status == AppConstants.taskStatusCompleted).length.toString(), Icons.check_circle, Colors.green, constraints),
+            _buildStatCard('Overdue', tasks.where((t) => t.deadline.isBefore(DateTime.now()) && t.status != AppConstants.taskStatusCompleted).length.toString(), Icons.warning, Colors.red, constraints),
           ],
         );
       },
@@ -344,12 +344,12 @@ class _TaskTable extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (permissions.contains('edit_task') || (permissions.contains('update_task_status') && isAssignedToTask))
+              if (permissions.contains(AppConstants.permissionEditTask) || (permissions.contains(AppConstants.permissionUpdateTaskStatus) && isAssignedToTask))
                 IconButton(
                   icon: Icon(Icons.edit),
                   onPressed: () => context.go('/tasks/${task.id}/edit'),
                 ),
-              if (permissions.contains('delete_task'))
+              if (permissions.contains(AppConstants.permissionDeleteTask))
                 IconButton(
                   icon: Icon(Icons.delete),
                   onPressed: () {

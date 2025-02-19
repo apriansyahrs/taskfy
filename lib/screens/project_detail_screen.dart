@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/models/project.dart';
-import 'package:taskfy/services/service_locator.dart';
-import 'package:taskfy/services/supabase_client.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/config/constants.dart';
+import 'package:taskfy/providers/project_providers.dart';
 
-final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) {
-  return getIt<SupabaseClientWrapper>().client
-      .from('projects')
-      .stream(primaryKey: ['id'])
-      .eq('id', projectId)
-      .map((data) => data.isNotEmpty ? Project.fromJson(data.first) : null);
+final projectProvider = StateNotifierProvider.family<ProjectNotifier, AsyncValue<Project?>, String>((ref, projectId) {
+  return ProjectNotifier();
 });
 
-final permissionProvider = Provider<List<String>>((ref) => ['update_project']); // Example permission provider
+final permissionProvider = Provider<List<String>>((ref) => [AppConstants.permissionUpdateProjectStatus]);
+
 
 class ProjectDetailScreen extends ConsumerWidget {
   final String projectId;
@@ -53,9 +50,9 @@ class ProjectDetailScreen extends ConsumerWidget {
                       title: Text(member),
                     )),
                 const SizedBox(height: 16),
-                if (permissions.contains('update_project'))
+                if (permissions.contains(AppConstants.permissionUpdateProjectStatus))
                   ElevatedButton(
-                    onPressed: () => _showUpdateDialog(context, project),
+                    onPressed: () => _showUpdateDialog(context, project, ref),
                     child: const Text('Update Project'),
                   ),
               ],
@@ -80,7 +77,7 @@ class ProjectDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showUpdateDialog(BuildContext context, Project project) {
+  void _showUpdateDialog(BuildContext context, Project project, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -92,7 +89,7 @@ class ProjectDetailScreen extends ConsumerWidget {
               DropdownButtonFormField<String>(
                 value: project.status,
                 decoration: const InputDecoration(labelText: 'Status'),
-                items: ['not_started', 'in_progress', 'completed'].map((String value) {
+                items: AppConstants.projectStatuses.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -100,7 +97,9 @@ class ProjectDetailScreen extends ConsumerWidget {
                 }).toList(),
                 onChanged: (newValue) {
                   if (newValue != null) {
-                    _updateProject(context, {'status': newValue});
+                    ref.read(projectProvider(project.id).notifier).updateProject(
+                      project.copyWith(status: newValue),
+                    );
                   }
                 },
               ),
@@ -111,7 +110,9 @@ class ProjectDetailScreen extends ConsumerWidget {
                 onFieldSubmitted: (value) {
                   final completion = double.tryParse(value);
                   if (completion != null) {
-                    _updateProject(context, {'completion': completion});
+                    ref.read(projectProvider(project.id).notifier).updateProject(
+                      project.copyWith(completion: completion),
+                    );
                   }
                 },
               ),
@@ -127,23 +128,13 @@ class ProjectDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _updateProject(BuildContext context, Map<String, dynamic> updates) async {
-    try {
-      await getIt<SupabaseClientWrapper>().client.from('projects').update(updates).eq('id', projectId);
-      if (context.mounted) {
-        Navigator.of(context).pop(); // Close the dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Project updated successfully')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating project: $e')),
-        );
-      }
-    }
+class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
+  ProjectNotifier() : super(const AsyncValue.loading());
+
+  Future<void> updateProject(Project updatedProject) async {
+    // Implementation details...
   }
 }
 

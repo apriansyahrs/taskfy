@@ -20,6 +20,7 @@ import 'package:taskfy/state/app_state.dart';
 import 'package:taskfy/middleware/auth_middleware.dart';
 import 'package:taskfy/screens/my_tasks_screen.dart';
 import 'package:taskfy/screens/my_projects_screen.dart';
+import 'package:taskfy/config/constants.dart';
 
 /// Provider for the application's router.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -42,28 +43,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/dashboard',
+        path: AppConstants.dashboardRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const DashboardScreen(),
         ),
       ),
       GoRoute(
-        path: '/tasks',
+        path: AppConstants.tasksRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const TaskListScreen(),
         ),
       ),
       GoRoute(
-        path: '/tasks/create',
+        path: '${AppConstants.tasksRoute}/create',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const TaskCreateScreen(),
         ),
       ),
       GoRoute(
-        path: '/tasks/:id',
+        path: '${AppConstants.tasksRoute}/:id',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
@@ -73,7 +74,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/tasks/:id/edit',
+        path: '${AppConstants.tasksRoute}/:id/edit',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
@@ -83,21 +84,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/projects',
+        path: AppConstants.projectsRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const ProjectListScreen(),
         ),
       ),
       GoRoute(
-        path: '/projects/create',
+        path: '${AppConstants.projectsRoute}/create',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const ProjectCreateScreen(),
         ),
       ),
       GoRoute(
-        path: '/projects/:id',
+        path: '${AppConstants.projectsRoute}/:id',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
@@ -107,7 +108,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/projects/:id/edit',
+        path: '${AppConstants.projectsRoute}/:id/edit',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
@@ -117,40 +118,40 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/reports',
+        path: AppConstants.reportsRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const ReportScreen(),
         ),
       ),
       GoRoute(
-        path: '/users',
+        path: AppConstants.usersRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: AuthMiddleware(
-            allowedRoles: ['admin'],
+            allowedRoles: [AppConstants.roleAdmin],
             child: const UserListScreen(),
           ),
         ),
       ),
       GoRoute(
-        path: '/users/create',
+        path: '${AppConstants.usersRoute}/create',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: AuthMiddleware(
-            allowedRoles: ['admin'],
+            allowedRoles: [AppConstants.roleAdmin],
             child: const UserCreateScreen(),
           ),
         ),
       ),
       GoRoute(
-        path: '/users/:id/edit',
+        path: '${AppConstants.usersRoute}/:id/edit',
         pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
             key: state.pageKey,
             child: AuthMiddleware(
-              allowedRoles: ['admin'],
+              allowedRoles: [AppConstants.roleAdmin],
               child: UserEditScreen(userId: id ?? ''),
             ),
           );
@@ -181,21 +182,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (isLoggedIn && (isLoggingIn || isForgotPassword)) {
-        return '/dashboard';
+        return AppConstants.dashboardRoute;
       }
 
       // Role-based redirects
       final userRole = authState.value?.role;
       if (isLoggedIn && userRole != null) {
-        if (state.uri.path.startsWith('/users') && !_hasPermission('manage_users', userRole)) {
-          return '/dashboard';
+        if (state.uri.path.startsWith(AppConstants.usersRoute) && !_hasPermission(AppConstants.permissionManageUsers, userRole)) {
+          return AppConstants.dashboardRoute;
         }
-        if (state.uri.path == '/reports' && !_hasPermission('view_reports', userRole)) {
-          return '/dashboard';
+        if (state.uri.path == AppConstants.reportsRoute && !_hasPermission(AppConstants.permissionViewReports, userRole)) {
+          return AppConstants.dashboardRoute;
         }
-        if ((state.uri.path == '/tasks/create' || state.uri.path == '/projects/create') && 
-            !_hasPermission('create_task', userRole) && !_hasPermission('create_project', userRole)) {
-          return '/dashboard';
+        if ((state.uri.path == '${AppConstants.tasksRoute}/create' || state.uri.path == '${AppConstants.projectsRoute}/create') && 
+            !_hasPermission(AppConstants.permissionCreateTask, userRole) && !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
+          return AppConstants.dashboardRoute;
         }
       }
 
@@ -211,16 +212,23 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 /// Checks if a user has a specific permission based on their role.
 bool _hasPermission(String permission, String role) {
-  // Implement your permission logic here
   switch (role) {
-    case 'admin':
+    case AppConstants.roleAdmin:
       return true;
-    case 'manager':
-      return ['create_project', 'create_task', 'assign_task', 'view_reports'].contains(permission);
-    case 'employee':
-      return ['update_task', 'update_project'].contains(permission);
-    case 'viewer':
-      return ['view_reports'].contains(permission);
+    case AppConstants.roleManager:
+      return [
+        AppConstants.permissionCreateProject,
+        AppConstants.permissionCreateTask,
+        AppConstants.permissionEditTask,
+        AppConstants.permissionViewReports
+      ].contains(permission);
+    case AppConstants.roleEmployee:
+      return [
+        AppConstants.permissionUpdateTaskStatus,
+        AppConstants.permissionUpdateProjectStatus
+      ].contains(permission);
+    case AppConstants.roleExecutive:
+      return [AppConstants.permissionViewReports].contains(permission);
     default:
       return false;
   }

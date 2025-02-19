@@ -5,6 +5,7 @@ import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:intl/intl.dart';
 
 class MyTasksScreen extends ConsumerWidget {
   const MyTasksScreen({Key? key}) : super(key: key);
@@ -27,6 +28,18 @@ class MyTasksScreen extends ConsumerWidget {
           },
           statuses: ['not_started', 'in_progress', 'completed'],
           canEdit: (task) => true, // Pegawai selalu dapat mengubah status tugas mereka sendiri
+          buildItemDetails: (task) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Description: ${task.description}'),
+              SizedBox(height: 8),
+              Text('Priority: ${task.priority}'),
+              SizedBox(height: 8),
+              Text('Deadline: ${DateFormat('MMM d, y').format(task.deadline)}'),
+              SizedBox(height: 8),
+              Text('Assigned To: ${task.assignedTo.join(", ")}'),
+            ],
+          ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),

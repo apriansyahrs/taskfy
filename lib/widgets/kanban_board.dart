@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// A generic Kanban board widget.
 class KanbanBoard<T> extends StatelessWidget {
   final List<T> items;
   final String Function(T) getTitle;
@@ -7,6 +8,7 @@ class KanbanBoard<T> extends StatelessWidget {
   final Function(T, String) onStatusChange;
   final List<String> statuses;
   final bool Function(T) canEdit;
+  final Widget Function(T)? buildItemDetails;
 
   const KanbanBoard({
     Key? key,
@@ -16,6 +18,7 @@ class KanbanBoard<T> extends StatelessWidget {
     required this.onStatusChange,
     required this.statuses,
     required this.canEdit,
+    this.buildItemDetails,
   }) : super(key: key);
 
   @override
@@ -38,6 +41,7 @@ class KanbanBoard<T> extends StatelessWidget {
                     onStatusChange: onStatusChange,
                     canEdit: canEdit,
                     width: constraints.maxWidth / statuses.length,
+                    buildItemDetails: buildItemDetails,
                   );
                 }).toList(),
               ),
@@ -49,6 +53,7 @@ class KanbanBoard<T> extends StatelessWidget {
   }
 }
 
+/// A column in the Kanban board representing a status.
 class KanbanColumn<T> extends StatelessWidget {
   final String status;
   final List<T> items;
@@ -56,6 +61,7 @@ class KanbanColumn<T> extends StatelessWidget {
   final Function(T, String) onStatusChange;
   final bool Function(T) canEdit;
   final double width;
+  final Widget Function(T)? buildItemDetails;
 
   const KanbanColumn({
     Key? key,
@@ -65,6 +71,7 @@ class KanbanColumn<T> extends StatelessWidget {
     required this.onStatusChange,
     required this.canEdit,
     required this.width,
+    this.buildItemDetails,
   }) : super(key: key);
 
   @override
@@ -92,6 +99,7 @@ class KanbanColumn<T> extends StatelessWidget {
                     getTitle: getTitle,
                     onStatusChange: onStatusChange,
                     canEdit: canEdit(item),
+                    buildItemDetails: buildItemDetails,
                   );
                 },
               ),
@@ -103,11 +111,13 @@ class KanbanColumn<T> extends StatelessWidget {
   }
 }
 
+/// A card in the Kanban board representing an item.
 class KanbanCard<T> extends StatelessWidget {
   final T item;
   final String Function(T) getTitle;
   final Function(T, String) onStatusChange;
   final bool canEdit;
+  final Widget Function(T)? buildItemDetails;
 
   const KanbanCard({
     Key? key,
@@ -115,30 +125,49 @@ class KanbanCard<T> extends StatelessWidget {
     required this.getTitle,
     required this.onStatusChange,
     required this.canEdit,
+    this.buildItemDetails,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.all(8),
-      child: ListTile(
+      child: ExpansionTile(
         title: Text(getTitle(item)),
-        trailing: canEdit
-            ? PopupMenuButton<String>(
-                onSelected: (String newStatus) {
-                  onStatusChange(item, newStatus);
-                },
-                itemBuilder: (BuildContext context) {
-                  return ['not_started', 'in_progress', 'completed']
-                      .map((String status) {
-                    return PopupMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList();
-                },
-              )
-            : null,
+        children: [
+          if (buildItemDetails != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: buildItemDetails!(item),
+            ),
+          if (canEdit)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  PopupMenuButton<String>(
+                    onSelected: (String newStatus) {
+                      onStatusChange(item, newStatus);
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return ['not_started', 'in_progress', 'completed']
+                          .map((String status) {
+                        return PopupMenuItem<String>(
+                          value: status,
+                          child: Text(status),
+                        );
+                      }).toList();
+                    },
+                    child: Chip(
+                      label: Text('Change Status'),
+                      avatar: Icon(Icons.edit),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

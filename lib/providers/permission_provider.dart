@@ -1,42 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/config/constants.dart';
 
 class PermissionNotifier extends StateNotifier<Set<String>> {
   PermissionNotifier() : super({});
 
   void setPermissions(String role) {
     switch (role) {
-      case 'admin':
+      case AppConstants.roleAdmin:
         state = {
-          'manage_users',
-          'create_project',
-          'edit_project',
-          'delete_project',
-          'create_task',
-          'edit_task',
-          'delete_task',
-          'view_reports',
+          AppConstants.permissionManageUsers,
+          AppConstants.permissionViewReports,
+          AppConstants.permissionCreateProject,
+          AppConstants.permissionEditProject,
+          AppConstants.permissionDeleteProject,
+          AppConstants.permissionCreateTask,
+          AppConstants.permissionEditTask,
+          AppConstants.permissionDeleteTask,
         };
         break;
-      case 'manager':
+      case AppConstants.roleManager:
         state = {
-          'create_project',
-          'edit_project',
-          'delete_project',
-          'create_task',
-          'edit_task',
-          'delete_task',
-          'view_reports',
+          AppConstants.permissionCreateProject,
+          AppConstants.permissionEditProject,
+          AppConstants.permissionDeleteProject,
+          AppConstants.permissionCreateTask,
+          AppConstants.permissionEditTask,
+          AppConstants.permissionDeleteTask,
+          AppConstants.permissionViewReports,
         };
         break;
-      case 'pegawai':
+      case AppConstants.roleEmployee:
         state = {
-          'update_task_status',
-          'update_project_status',
+          AppConstants.permissionUpdateTaskStatus,
+          AppConstants.permissionUpdateProjectStatus,
         };
         break;
-      case 'direksi':
-        state = {'view_reports'};
+      case AppConstants.roleExecutive:
+        state = {AppConstants.permissionViewReports};
         break;
       default:
         state = {};

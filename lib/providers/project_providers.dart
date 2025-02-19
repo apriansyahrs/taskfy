@@ -6,10 +6,11 @@ import 'package:logging/logging.dart';
 
 final _log = Logger('ProjectNotifier');
 
+/// Provider for a list of projects, optionally filtered by user email.
 final projectListProvider = StreamProvider.family<List<Project>, String?>((ref, userEmail) {
   final supabase = getIt<SupabaseClientWrapper>().client;
   final query = supabase.from('projects').stream(primaryKey: ['id']);
-  
+
   if (userEmail != null) {
     return query
       .eq('team_members', [userEmail])
@@ -22,7 +23,7 @@ final projectListProvider = StreamProvider.family<List<Project>, String?>((ref, 
   }
 });
 
-
+/// Provider for a single project, identified by its ID.
 final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) {
   return getIt<SupabaseClientWrapper>().client
       .from('projects')
@@ -31,11 +32,13 @@ final projectProvider = StreamProvider.family<Project?, String>((ref, projectId)
       .map((data) => data.isNotEmpty ? Project.fromJson(data.first) : null);
 });
 
+/// Notifier for managing project state and operations.
 class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   ProjectNotifier() : super(const AsyncValue.loading());
 
   final _supabase = getIt<SupabaseClientWrapper>().client;
 
+  /// Creates a new project.
   Future<void> createProject(Project project) async {
     state = const AsyncValue.loading();
     try {
@@ -55,6 +58,7 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
     }
   }
 
+  /// Updates an existing project.
   Future<void> updateProject(Project project) async {
     state = const AsyncValue.loading();
     try {
@@ -68,6 +72,7 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
     }
   }
 
+  /// Deletes a project by its ID.
   Future<void> deleteProject(String projectId) async {
     state = const AsyncValue.loading();
     try {
@@ -82,6 +87,7 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   }
 }
 
+/// Provider for the ProjectNotifier.
 final projectNotifierProvider = StateNotifierProvider<ProjectNotifier, AsyncValue<Project?>>((ref) {
   return ProjectNotifier();
 });
