@@ -5,11 +5,13 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/providers/task_providers.dart';
 
 class TaskListScreen extends ConsumerWidget {
-  const TaskListScreen({super.key});
+  final String? userId;
+  final String userRole;
+  const TaskListScreen({super.key, required this.userId, required this.userRole});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsyncValue = ref.watch(taskListProvider);
+    final tasksAsyncValue = ref.watch(taskListProvider(userRole == 'pegawai' ? userId : null));
 
     return AppLayout(
       title: 'Task Manager',

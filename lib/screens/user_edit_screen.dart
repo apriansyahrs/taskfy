@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:taskfy/models/user.dart' as taskfy_user; // Changed to lowercase with underscores
+import 'package:taskfy/models/user.dart' as taskfy_user;
 import 'package:taskfy/providers/user_provider.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +19,17 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   late TextEditingController _emailController;
   String _selectedRole = 'pegawai';
   bool _isLoading = false;
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter an email';
+    }
+    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegExp.hasMatch(value)) {
+      return 'Please enter a valid email';
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -52,7 +63,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
             return const Center(child: Text('User not found'));
           }
           _emailController.text = user.email;
-          _selectedRole = user.role ?? 'pegawai';
+          _selectedRole = user.role;
 
           return SingleChildScrollView(
             child: Padding(
@@ -70,15 +81,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                         prefixIcon: Icon(Icons.email),
                       ),
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter an email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
+                      validator: _validateEmail,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -162,3 +165,4 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     }
   }
 }
+

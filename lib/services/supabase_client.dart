@@ -1,8 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseClientWrapper {
-  static final SupabaseClientWrapper _instance =
-      SupabaseClientWrapper._internal();
+  static final SupabaseClientWrapper _instance = SupabaseClientWrapper._internal();
   late final SupabaseClient _client;
 
   factory SupabaseClientWrapper() {
@@ -21,6 +20,4 @@ class SupabaseClientWrapper {
 
   SupabaseClient get client => _client;
 }
-
-final supabaseClient = SupabaseClientWrapper();
 

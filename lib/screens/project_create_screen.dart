@@ -5,10 +5,11 @@ import 'package:taskfy/providers/project_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 
 final usersProvider = StreamProvider((ref) {
-  return supabaseClient.client
+  return getIt<SupabaseClientWrapper>().client
       .from('users')
       .stream(primaryKey: ['id'])
       .map((data) => data.map((json) => json['email'] as String).toList());

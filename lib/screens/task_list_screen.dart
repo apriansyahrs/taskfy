@@ -4,9 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:taskfy/models/task.dart';
 import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
+import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/widgets/error_widget.dart';
+import 'package:taskfy/config/constants.dart';
+import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/models/user.dart' as taskfy_user;
 
+/// Screen for displaying and managing the list of tasks.
 class TaskListScreen extends ConsumerStatefulWidget {
   const TaskListScreen({super.key});
 
@@ -16,6 +22,7 @@ class TaskListScreen extends ConsumerStatefulWidget {
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   final _searchController = TextEditingController();
+  bool _isKanbanView = false;
 
   @override
   void dispose() {
@@ -25,16 +32,29 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tasksAsyncValue = ref.watch(taskListProvider);
+    final user = ref.watch(authProvider);
+    final userEmail = user?.email;
+    final userRole = user?.role ?? '';
+    final tasksAsyncValue = ref.watch(taskListProvider(userRole == 'pegawai' ? userEmail : null));
+    final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'Tasks',
       actions: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text('New Task'),
-          onPressed: () => context.go('/tasks/create'),
+        if (permissions.contains('create_task'))
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('New Task'),
+            onPressed: () => context.go('${AppConstants.tasksRoute}/create'),
+          ),
+        IconButton(
+          icon: Icon(_isKanbanView ? Icons.view_list : Icons.view_column),
+          onPressed: () {
+            setState(() {
+              _isKanbanView = !_isKanbanView;
+            });
+          },
         ),
       ],
       child: Column(
@@ -42,7 +62,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         children: [
           _buildStatCards(tasksAsyncValue),
           const SizedBox(height: 32),
-          _buildTaskList(context, tasksAsyncValue),
+          _isKanbanView
+              ? _buildKanbanView(tasksAsyncValue, permissions, user)
+              : _buildTaskList(context, tasksAsyncValue, permissions),
         ],
       ),
     );
@@ -56,7 +78,27 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     );
   }
 
-  Widget _buildTaskList(BuildContext context, AsyncValue<List<Task>> tasksAsyncValue) {
+  Widget _buildKanbanView(AsyncValue<List<Task>> tasksAsyncValue, Set<String> permissions, taskfy_user.User? currentUser) {
+    return tasksAsyncValue.when(
+      data: (tasks) => KanbanBoard<Task>(
+        items: tasks,
+        getTitle: (task) => task.name,
+        getStatus: (task) => task.status,
+        onStatusChange: (task, newStatus) {
+          if (permissions.contains('update_task_status') && task.assignedTo.contains(currentUser?.email)) {
+            ref.read(taskNotifierProvider.notifier).updateTask(task.copyWith(status: newStatus));
+          }
+        },
+        statuses: ['not_started', 'in_progress', 'completed'],
+        canEdit: (task) => permissions.contains('update_task_status') && task.assignedTo.contains(currentUser?.email),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => CustomErrorWidget(message: err.toString()),
+    );
+  }
+
+  Widget _buildTaskList(BuildContext context, AsyncValue<List<Task>> tasksAsyncValue, Set<String> permissions) {
+    final user = ref.watch(authProvider);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -94,6 +136,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 onDelete: (String taskId) {
                   ref.read(taskNotifierProvider.notifier).deleteTask(taskId);
                 },
+                permissions: permissions,
+                currentUser: user,
+                taskNotifierProvider: taskNotifierProvider,
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => CustomErrorWidget(message: err.toString()),
@@ -108,7 +153,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
 class _StatCards extends StatelessWidget {
   final List<Task> tasks;
 
-  // ignore: use_super_parameters
   const _StatCards({Key? key, required this.tasks}) : super(key: key);
 
   @override
@@ -175,12 +219,17 @@ class _TaskTable extends StatelessWidget {
   final List<Task> tasks;
   final String searchQuery;
   final Function(String) onDelete;
+  final Set<String> permissions;
+  final taskfy_user.User? currentUser;
+  final StateNotifierProvider<TaskNotifier, AsyncValue<Task?>> taskNotifierProvider;
 
   const _TaskTable({
-    super.key,
     required this.tasks,
     required this.searchQuery,
     required this.onDelete,
+    required this.permissions,
+    required this.currentUser,
+    required this.taskNotifierProvider,
   });
 
   @override
@@ -217,6 +266,8 @@ class _TaskTable extends StatelessWidget {
   }
 
   DataRow _buildTaskRow(BuildContext context, Task task) {
+    final isAssignedToTask = task.assignedTo.contains(currentUser?.email);
+
     return DataRow(
       cells: [
         DataCell(
@@ -293,18 +344,20 @@ class _TaskTable extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () => context.go('/tasks/${task.id}/edit'),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () {
-                  if (task.id != null) {
-                    onDelete(task.id!);
-                  }
-                },
-              ),
+              if (permissions.contains('edit_task') || (permissions.contains('update_task_status') && isAssignedToTask))
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  onPressed: () => context.go('/tasks/${task.id}/edit'),
+                ),
+              if (permissions.contains('delete_task'))
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () {
+                    if (task.id != null) {
+                      onDelete(task.id!);
+                    }
+                  },
+                ),
             ],
           ),
         ),
@@ -314,11 +367,11 @@ class _TaskTable extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'completed':
+      case AppConstants.taskStatusCompleted:
         return Colors.green;
-      case 'in_progress':
+      case AppConstants.taskStatusInProgress:
         return Colors.blue;
-      case 'not_started':
+      case AppConstants.taskStatusNotStarted:
         return Colors.orange;
       default:
         return Colors.grey;
@@ -327,11 +380,11 @@ class _TaskTable extends StatelessWidget {
 
   Color _getPriorityColor(String priority) {
     switch (priority.toLowerCase()) {
-      case 'high':
+      case AppConstants.taskPriorityHigh:
         return Colors.red;
-      case 'medium':
+      case AppConstants.taskPriorityMedium:
         return Colors.orange;
-      case 'low':
+      case AppConstants.taskPriorityLow:
         return Colors.green;
       default:
         return Colors.grey;

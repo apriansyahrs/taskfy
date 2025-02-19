@@ -5,10 +5,12 @@ import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
+import 'package:taskfy/providers/user_availability_provider.dart';
 
 final usersProvider = StreamProvider((ref) {
-  return supabaseClient.client
+  return getIt<SupabaseClientWrapper>().client
       .from('users')
       .stream(primaryKey: ['id'])
       .map((data) => data.map((json) => json['email'] as String).toList());
@@ -106,18 +108,20 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
                     return Wrap(
                       spacing: 8,
                       children: users.map((user) {
+                        final isAvailable = ref.watch(userAvailabilityProvider(UserAvailabilityParams(user, _deadline)));
                         return FilterChip(
                           label: Text(user),
                           selected: _assignedTo.contains(user),
-                          onSelected: (selected) {
+                          onSelected: isAvailable ? (selected) {
                             setState(() {
-                              if (selected) {
+                              if (selected && _assignedTo.length < 3) {
                                 _assignedTo.add(user);
                               } else {
                                 _assignedTo.remove(user);
                               }
                             });
-                          },
+                          } : null,
+                          backgroundColor: isAvailable ? null : Colors.grey,
                         );
                       }).toList(),
                     );
@@ -164,6 +168,13 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      if (_assignedTo.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please assign the task to at least one person')),
+        );
+        return;
+      }
+
       final task = Task(
         name: _nameController.text,
         description: _descriptionController.text,

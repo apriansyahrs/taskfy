@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/models/user.dart';
-import 'package:taskfy/services/auth_service.dart';
-import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/providers/permission_provider.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
@@ -33,7 +32,7 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authStateProvider).value;
+    final user = ref.watch(authProvider);
     final permissions = ref.watch(permissionProvider);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isMobile = MediaQuery.of(context).size.width < 768;
@@ -49,40 +48,48 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
               children: [
                 _buildTopBar(user, isDarkMode),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              widget.pageTitle,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.all(24.0),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  widget.pageTitle,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                if (widget.actions != null) ...widget.actions!,
+                              ],
                             ),
-                            if (widget.actions != null) ...widget.actions!,
-                          ],
-                        ),
-                        if (widget.subtitle != null) ...[
-                          SizedBox(height: 8),
-                          Text(
-                            widget.subtitle!,
-                            style:
-                                Theme.of(context).textTheme.bodyLarge!.copyWith(
+                            if (widget.subtitle != null) ...[
+                              SizedBox(height: 8),
+                              Text(
+                                widget.subtitle!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge!
+                                    .copyWith(
                                       color: Colors.grey[600],
                                     ),
-                          ),
-                        ],
-                        SizedBox(height: 24),
-                        widget.child,
-                      ],
-                    ),
+                              ),
+                            ],
+                            SizedBox(height: 24),
+                          ]),
+                        ),
+                      ),
+                      SliverFillRemaining(
+                        hasScrollBody: true,
+                        child: widget.child,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -162,7 +169,7 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
             onSelected: (value) async {
               if (value == 'logout') {
                 await ref.read(authProvider.notifier).signOut();
-                if (context.mounted) {
+                if (mounted) {
                   context.go('/');
                 }
               }
@@ -201,6 +208,20 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
                     route: '/dashboard',
                     isDarkMode: isDarkMode,
                   ),
+                  if (permissions.contains('update_task_status'))
+                    _buildSidebarItem(
+                      icon: Icons.task_outlined,
+                      title: 'My Tasks',
+                      route: '/my-tasks',
+                      isDarkMode: isDarkMode,
+                    ),
+                  if (permissions.contains('update_project_status'))
+                    _buildSidebarItem(
+                      icon: Icons.work_outline,
+                      title: 'My Projects',
+                      route: '/my-projects',
+                      isDarkMode: isDarkMode,
+                    ),
                   if (permissions.contains('update_task') ||
                       permissions.contains('create_task'))
                     _buildSidebarItem(
@@ -331,7 +352,7 @@ class _AppLayoutState extends ConsumerState<AppLayout> {
 }
 
 class _ThemeToggle extends ConsumerWidget {
-  const _ThemeToggle({Key? key}) : super(key: key);
+  const _ThemeToggle();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -32,8 +32,8 @@ class AuthNotifier extends StateNotifier<User?> {
   }
 }
 
-final userRoleProvider = Provider<String?>((ref) {
+final userEmailProvider = Provider<String?>((ref) {
   final user = ref.watch(authProvider);
-  return user?.role;
+  return user?.email;
 });
 

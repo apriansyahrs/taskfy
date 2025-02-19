@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/models/project.dart';
+import 'package:taskfy/models/user.dart';
 import 'package:taskfy/widgets/app_layout.dart';
+import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/providers/project_providers.dart';
+import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/providers/auth_provider.dart';
 
 class ProjectListScreen extends ConsumerStatefulWidget {
   const ProjectListScreen({super.key});
@@ -15,6 +19,7 @@ class ProjectListScreen extends ConsumerStatefulWidget {
 
 class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
   String _searchQuery = '';
+  bool _isKanbanView = false;
 
   Widget _buildStatCards(AsyncValue<List<Project>> projectsAsyncValue) {
     return projectsAsyncValue.when(
@@ -39,8 +44,26 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
     );
   }
 
+  Widget _buildKanbanView(AsyncValue<List<Project>> projectsAsyncValue, Set<String> permissions, User? currentUser) {
+    return projectsAsyncValue.when(
+      data: (projects) => KanbanBoard<Project>(
+        items: projects,
+        getTitle: (project) => project.name,
+        getStatus: (project) => project.status,
+        onStatusChange: (project, newStatus) {
+          if (permissions.contains('update_project_status') && project.teamMembers.contains(currentUser?.email)) {
+            ref.read(projectNotifierProvider.notifier).updateProject(project.copyWith(status: newStatus));
+          }
+        },
+        statuses: ['not_started', 'in_progress', 'completed', 'on_hold'],
+        canEdit: (project) => permissions.contains('update_project_status') && project.teamMembers.contains(currentUser?.email),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
 
-  Widget _buildProjectList(BuildContext context, AsyncValue<List<Project>> projectsAsyncValue) {
+  Widget _buildProjectList(BuildContext context, AsyncValue<List<Project>> projectsAsyncValue, Set<String> permissions) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -78,6 +101,8 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
               data: (projects) {
                 final filteredProjects = projects.where((project) =>
                     project.name.toLowerCase().contains(_searchQuery) ||
+                
+                    project.name.toLowerCase().contains(_searchQuery) ||
                     project.description.toLowerCase().contains(_searchQuery) ||
                     project.status.toLowerCase().contains(_searchQuery)
                 ).toList();
@@ -100,7 +125,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                             DataColumn(label: Text('Progress')),
                             DataColumn(label: Text('Actions')),
                           ],
-                          rows: filteredProjects.map((project) => _buildProjectRow(context, project)).toList(),
+                          rows: filteredProjects.map((project) => _buildProjectRow(context, project, permissions)).toList(),
                         ),
                       ),
                     );
@@ -116,7 +141,10 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
     );
   }
 
-  DataRow _buildProjectRow(BuildContext context, Project project) {
+  DataRow _buildProjectRow(BuildContext context, Project project, Set<String> permissions) {
+    final user = ref.watch(authProvider);
+    final isAssignedToProject = project.teamMembers.contains(user?.email);
+
     return DataRow(
       cells: [
         DataCell(
@@ -194,34 +222,40 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: Icon(Icons.edit),
-                onPressed: () => context
-                    .go('/projects/${project.id}/edit'),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete),
-                onPressed: () async {
-                  if (project.id.isNotEmpty) {
-                    try {
-                      await ref.read(projectNotifierProvider.notifier).deleteProject(project.id);
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Project deleted successfully')),
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error deleting project: $e')),
-                      );
+              if (permissions.contains('edit_project') || (permissions.contains('update_project_status') && isAssignedToProject))
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  onPressed: () => context
+                      .go('/projects/${project.id}/edit'),
+                ),
+              if (permissions.contains('delete_project'))
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () async {
+                    if (project.id.isNotEmpty) {
+                      try {
+                        await ref.read(projectNotifierProvider.notifier).deleteProject(project.id);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Project deleted successfully')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error deleting project: $e')),
+                          );
+                        }
+                      }
+                    } else {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Cannot delete project: Invalid project ID')),
+                        );
+                      }
                     }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Cannot delete project: Invalid project ID')),
-                    );
-                  }
-                },
-              ),
+                  },
+                ),
             ],
           ),
         ),
@@ -229,19 +263,31 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final projectsAsyncValue = ref.watch(projectListProvider);
+    final user = ref.watch(authProvider);
+    final userEmail = user?.email;
+    final userRole = user?.role ?? '';
+    final projectsAsyncValue = ref.watch(projectListProvider(userRole == 'pegawai' ? userEmail : null));
+    final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'Projects',
       actions: [
-        ElevatedButton.icon(
-          icon: Icon(Icons.add),
-          label: Text('New Project'),
-          onPressed: () => context.go('/projects/create'),
+        if (permissions.contains('create_project'))
+          ElevatedButton.icon(
+            icon: Icon(Icons.add),
+            label: Text('New Project'),
+            onPressed: () => context.go('/projects/create'),
+          ),
+        IconButton(
+          icon: Icon(_isKanbanView ? Icons.view_list : Icons.view_column),
+          onPressed: () {
+            setState(() {
+              _isKanbanView = !_isKanbanView;
+            });
+          },
         ),
       ],
       child: Column(
@@ -249,7 +295,9 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
         children: [
           _buildStatCards(projectsAsyncValue),
           const SizedBox(height: 32),
-          _buildProjectList(context, projectsAsyncValue),
+          _isKanbanView
+              ? _buildKanbanView(projectsAsyncValue, permissions, user)
+              : _buildProjectList(context, projectsAsyncValue, permissions),
         ],
       ),
     );

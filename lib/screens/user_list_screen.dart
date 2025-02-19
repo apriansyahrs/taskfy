@@ -4,6 +4,7 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/models/user.dart' as taskfy_user; // Changed to lowercase with underscores
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/user_provider.dart';
+import 'package:taskfy/providers/permission_provider.dart';
 
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
@@ -13,28 +14,37 @@ class UserListScreen extends ConsumerStatefulWidget {
 }
 
 class _UserListScreenState extends ConsumerState<UserListScreen> {
-  String _searchQuery = '';
+  // Removed: String _searchQuery = '';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final usersAsyncValue = ref.watch(usersStreamProvider);
+    final permissions = ref.watch(permissionProvider.notifier).state;
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'User Management',
       actions: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.person_add),
-          label: const Text('Add User'),
-          onPressed: () => context.go('/users/create'),
-        ),
+        if (permissions.contains('create_user'))
+          ElevatedButton.icon(
+            icon: const Icon(Icons.person_add),
+            label: const Text('Add User'),
+            onPressed: () => context.go('/users/create'),
+          ),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildUserStats(usersAsyncValue),
           const SizedBox(height: 24),
-          _buildUserList(context, usersAsyncValue),
+          _buildUserList(context, usersAsyncValue, permissions),
         ],
       ),
     );
@@ -68,7 +78,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     );
   }
 
-  Widget _buildUserList(BuildContext context, AsyncValue<List<taskfy_user.User>> usersAsyncValue) {
+  Widget _buildUserList(BuildContext context, AsyncValue<List<taskfy_user.User>> usersAsyncValue, Set<String> permissions) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -85,6 +95,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                 SizedBox(
                   width: 200,
                   child: TextField(
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search users...',
                       prefixIcon: const Icon(Icons.search),
@@ -92,11 +103,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.toLowerCase();
-                      });
-                    },
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
               ],
@@ -113,9 +120,9 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                   );
                 }
                 final filteredUsers = users.where((user) =>
-                    user.email.toLowerCase().contains(_searchQuery) ||
-                    user.role.toLowerCase().contains(_searchQuery)).toList();
-                return _buildUserTable(filteredUsers);
+                    user.email.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+                    user.role.toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+                return _buildUserTable(filteredUsers, permissions);
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Error: $err')),
@@ -126,7 +133,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     );
   }
 
-  Widget _buildUserTable(List<taskfy_user.User> users) {
+  Widget _buildUserTable(List<taskfy_user.User> users, Set<String> permissions) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -140,7 +147,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                 DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
-              rows: users.map((user) => _buildUserRow(context, user)).toList(),
+              rows: users.map((user) => _buildUserRow(context, user, permissions)).toList(),
             ),
           ),
         );
@@ -148,7 +155,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     );
   }
 
-  DataRow _buildUserRow(BuildContext context, taskfy_user.User user) {
+  DataRow _buildUserRow(BuildContext context, taskfy_user.User user, Set<String> permissions) {
     return DataRow(
       cells: [
         DataCell(
@@ -169,18 +176,21 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () => context.go('/users/${user.id}/edit'),
-              ),
-              IconButton(
-                icon: const Icon(Icons.lock_reset),
-                onPressed: () => _showResetPasswordDialog(context, user.email),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () => _showDeleteUserDialog(context, user.id),
-              ),
+              if (permissions.contains('update_user'))
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => context.go('/users/${user.id}/edit'),
+                ),
+              if (permissions.contains('reset_password'))
+                IconButton(
+                  icon: const Icon(Icons.lock_reset),
+                  onPressed: () => _showResetPasswordDialog(context, user.email),
+                ),
+              if (permissions.contains('delete_user'))
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => _showDeleteUserDialog(context, user.id),
+                ),
             ],
           ),
         ),
@@ -282,3 +292,4 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     );
   }
 }
+

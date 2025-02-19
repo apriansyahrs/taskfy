@@ -16,12 +16,14 @@ import 'package:taskfy/screens/report_screen.dart';
 import 'package:taskfy/screens/user_list_screen.dart';
 import 'package:taskfy/screens/user_create_screen.dart';
 import 'package:taskfy/screens/user_edit_screen.dart';
-import 'package:taskfy/providers/auth_provider.dart';
-import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/state/app_state.dart';
+import 'package:taskfy/middleware/auth_middleware.dart';
+import 'package:taskfy/screens/my_tasks_screen.dart';
+import 'package:taskfy/screens/my_projects_screen.dart';
 
+/// Provider for the application's router.
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-  final permissionNotifier = ref.watch(permissionProvider.notifier);
+  final authState = ref.watch(authStateProvider);
 
   return GoRouter(
     routes: [
@@ -125,14 +127,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/users',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
-          child: const UserListScreen(),
+          child: AuthMiddleware(
+            allowedRoles: ['admin'],
+            child: const UserListScreen(),
+          ),
         ),
       ),
       GoRoute(
         path: '/users/create',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
-          child: const UserCreateScreen(),
+          child: AuthMiddleware(
+            allowedRoles: ['admin'],
+            child: const UserCreateScreen(),
+          ),
         ),
       ),
       GoRoute(
@@ -141,13 +149,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id'];
           return NoTransitionPage<void>(
             key: state.pageKey,
-            child: UserEditScreen(userId: id ?? ''),
+            child: AuthMiddleware(
+              allowedRoles: ['admin'],
+              child: UserEditScreen(userId: id ?? ''),
+            ),
           );
         },
       ),
+      GoRoute(
+        path: '/my-tasks',
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const MyTasksScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/my-projects',
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const MyProjectsScreen(),
+        ),
+      ),
     ],
     redirect: (context, state) {
-      final isLoggedIn = authState != null;
+      final isLoggedIn = authState.value != null;
       final isLoggingIn = state.uri.path == '/';
       final isForgotPassword = state.uri.path == '/forgot-password';
 
@@ -160,16 +185,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Role-based redirects
-      final userRole = authState?.role;
+      final userRole = authState.value?.role;
       if (isLoggedIn && userRole != null) {
-        if (state.uri.path.startsWith('/users') && !permissionNotifier.hasPermission('manage_users')) {
+        if (state.uri.path.startsWith('/users') && !_hasPermission('manage_users', userRole)) {
           return '/dashboard';
         }
-        if (state.uri.path == '/reports' && !permissionNotifier.hasPermission('view_reports')) {
+        if (state.uri.path == '/reports' && !_hasPermission('view_reports', userRole)) {
           return '/dashboard';
         }
         if ((state.uri.path == '/tasks/create' || state.uri.path == '/projects/create') && 
-            !permissionNotifier.hasPermission('create_task') && !permissionNotifier.hasPermission('create_project')) {
+            !_hasPermission('create_task', userRole) && !_hasPermission('create_project', userRole)) {
           return '/dashboard';
         }
       }
@@ -183,4 +208,21 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+/// Checks if a user has a specific permission based on their role.
+bool _hasPermission(String permission, String role) {
+  // Implement your permission logic here
+  switch (role) {
+    case 'admin':
+      return true;
+    case 'manager':
+      return ['create_project', 'create_task', 'assign_task', 'view_reports'].contains(permission);
+    case 'employee':
+      return ['update_task', 'update_project'].contains(permission);
+    case 'viewer':
+      return ['view_reports'].contains(permission);
+    default:
+      return false;
+  }
+}
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/widgets/custom_text_field.dart';
+import 'package:taskfy/utils/error_handler.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +17,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -65,15 +66,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          TextFormField(
+                          CustomTextField(
                             controller: _emailController,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: Icon(Icons.email),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            labelText: 'Email',
+                            prefixIcon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -86,28 +82,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          TextFormField(
+                          CustomTextField(
                             controller: _passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            obscureText: !_isPasswordVisible,
+                            labelText: 'Password',
+                            prefixIcon: Icons.lock,
+                            obscureText: true,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your password';
@@ -170,27 +149,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _passwordController.text,
         );
 
-        setState(() {
-          _isLoading = false;
-        });
-
         if (ref.read(authProvider) != null) {
           if (!mounted) return;
           context.go('/dashboard');
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid email or password')),
-          );
+          showErrorSnackBar(context, 'Invalid email or password');
         }
       } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        showErrorSnackBar(context, getErrorMessage(e));
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

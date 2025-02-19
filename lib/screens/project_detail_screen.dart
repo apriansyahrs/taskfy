@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/models/project.dart';
+import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:intl/intl.dart';
 
 final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) {
-  return supabaseClient.client
+  return getIt<SupabaseClientWrapper>().client
       .from('projects')
       .stream(primaryKey: ['id'])
       .eq('id', projectId)
       .map((data) => data.isNotEmpty ? Project.fromJson(data.first) : null);
 });
+
+final permissionProvider = Provider<List<String>>((ref) => ['update_project']); // Example permission provider
 
 class ProjectDetailScreen extends ConsumerWidget {
   final String projectId;
@@ -20,6 +23,7 @@ class ProjectDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final projectAsyncValue = ref.watch(projectProvider(projectId));
+    final permissions = ref.watch(permissionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Project Detail')),
@@ -49,10 +53,11 @@ class ProjectDetailScreen extends ConsumerWidget {
                       title: Text(member),
                     )),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => _showUpdateDialog(context, project),
-                  child: const Text('Update Project'),
-                ),
+                if (permissions.contains('update_project'))
+                  ElevatedButton(
+                    onPressed: () => _showUpdateDialog(context, project),
+                    child: const Text('Update Project'),
+                  ),
               ],
             ),
           );
@@ -125,7 +130,7 @@ class ProjectDetailScreen extends ConsumerWidget {
 
   void _updateProject(BuildContext context, Map<String, dynamic> updates) async {
     try {
-      await supabaseClient.client.from('projects').update(updates).eq('id', projectId);
+      await getIt<SupabaseClientWrapper>().client.from('projects').update(updates).eq('id', projectId);
       if (context.mounted) {
         Navigator.of(context).pop(); // Close the dialog
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,20 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/models/project.dart';
+import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger('ProjectNotifier');
 
-final projectListProvider = StreamProvider<List<Project>>((ref) {
-  return supabaseClient.client
-      .from('projects')
-      .stream(primaryKey: ['id'])
-      .order('end_date', ascending: true)
+final projectListProvider = StreamProvider.family<List<Project>, String?>((ref, userEmail) {
+  final supabase = getIt<SupabaseClientWrapper>().client;
+  final query = supabase.from('projects').stream(primaryKey: ['id']);
+  
+  if (userEmail != null) {
+    return query
+      .eq('team_members', [userEmail])
+      .order('end_date')
       .map((data) => data.map((json) => Project.fromJson(json)).toList());
+  } else {
+    return query
+      .order('end_date')
+      .map((data) => data.map((json) => Project.fromJson(json)).toList());
+  }
 });
 
+
 final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) {
-  return supabaseClient.client
+  return getIt<SupabaseClientWrapper>().client
       .from('projects')
       .stream(primaryKey: ['id'])
       .eq('id', projectId)
@@ -24,7 +34,7 @@ final projectProvider = StreamProvider.family<Project?, String>((ref, projectId)
 class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   ProjectNotifier() : super(const AsyncValue.loading());
 
-  final _supabase = supabaseClient.client;
+  final _supabase = getIt<SupabaseClientWrapper>().client;
 
   Future<void> createProject(Project project) async {
     state = const AsyncValue.loading();
