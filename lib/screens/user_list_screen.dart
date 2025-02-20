@@ -5,6 +5,8 @@ import 'package:taskfy/models/user.dart' as taskfy_user; // Changed to lowercase
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/user_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/services/auth_service.dart';
 
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
@@ -26,13 +28,14 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsyncValue = ref.watch(usersStreamProvider);
-    final permissions = ref.watch(permissionProvider.notifier).state;
+    final permissions = ref.watch(permissionProvider);
+    final isAdmin = ref.watch(authProvider)?.role == 'admin';
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'User Management',
       actions: [
-        if (permissions.contains('create_user'))
+        if (isAdmin || permissions.contains('create_user'))
           ElevatedButton.icon(
             icon: const Icon(Icons.person_add),
             label: const Text('Add User'),
@@ -56,7 +59,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         final totalUsers = users.length;
         final adminCount = users.where((user) => user.role == 'admin').length;
         final managerCount = users.where((user) => user.role == 'manager').length;
-        final employeeCount = users.where((user) => user.role == 'employee').length;
+        final employeeCount = users.where((user) => user.role == 'pegawai').length;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -156,6 +159,8 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   }
 
   DataRow _buildUserRow(BuildContext context, taskfy_user.User user, Set<String> permissions) {
+    final isAdmin = ref.read(authProvider)?.role == 'admin';
+
     return DataRow(
       cells: [
         DataCell(
@@ -176,17 +181,17 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (permissions.contains('update_user'))
+              if (isAdmin || permissions.contains('update_user'))
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () => context.go('/users/${user.id}/edit'),
                 ),
-              if (permissions.contains('reset_password'))
+              if (isAdmin || permissions.contains('reset_password'))
                 IconButton(
                   icon: const Icon(Icons.lock_reset),
                   onPressed: () => _showResetPasswordDialog(context, user.email),
                 ),
-              if (permissions.contains('delete_user'))
+              if (isAdmin || permissions.contains('delete_user'))
                 IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: () => _showDeleteUserDialog(context, user.id),
@@ -242,21 +247,32 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   void _showResetPasswordDialog(BuildContext context, String email) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Reset Password'),
         content: Text('Are you sure you want to reset the password for $email?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Implement password reset logic here
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Password reset email sent to $email')),
-              );
+            onPressed: () async {
+              try {
+                await ref.read(authServiceProvider).resetPassword(email);
+                Navigator.of(dialogContext).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Password reset email sent to $email')),
+                  );
+                }
+              } catch (e) {
+                Navigator.of(dialogContext).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}')),
+                  );
+                }
+              }
             },
             child: const Text('Reset Password'),
           ),

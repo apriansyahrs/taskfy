@@ -49,7 +49,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
 
     return AppLayout(
       title: 'Task Manager',
-      pageTitle: 'Edit User',
+      pageTitle: 'Edit User Role',
       actions: [
         ElevatedButton.icon(
           icon: const Icon(Icons.save),
@@ -63,7 +63,11 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
             return const Center(child: Text('User not found'));
           }
           _emailController.text = user.email;
-          _selectedRole = user.role;
+          // Hanya set _selectedRole jika belum diinisialisasi
+          if (_selectedRole == 'pegawai') {
+            _selectedRole = user.role;
+          }
+          print('Current selected role: $_selectedRole');
 
           return SingleChildScrollView(
             child: Padding(
@@ -73,15 +77,9 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _validateEmail,
+                    Text(
+                      'Email: ${_emailController.text}',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -98,9 +96,12 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                         );
                       }).toList(),
                       onChanged: (newValue) {
-                        setState(() {
-                          _selectedRole = newValue!;
-                        });
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedRole = newValue;
+                            print('Role changed to: $_selectedRole');
+                          });
+                        }
                       },
                     ),
                     const SizedBox(height: 32),
@@ -113,7 +114,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                           onPressed: _updateUser,
                           child: const Padding(
                             padding: EdgeInsets.all(16.0),
-                            child: Text('Update User'),
+                            child: Text('Update User Role'),
                           ),
                         ),
                       ),
@@ -135,24 +136,30 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
         _isLoading = true;
       });
 
-      final updatedUser = taskfy_user.User(
-        id: widget.userId,
-        email: _emailController.text,
-        role: _selectedRole,
-      );
-
       try {
-        await ref.read(userNotifierProvider.notifier).updateUser(updatedUser);
+        print('Updating user with role: $_selectedRole');
+        final updatedUser = taskfy_user.User(
+          id: widget.userId,
+          email: _emailController.text,
+          role: _selectedRole,
+        );
+
+        final result = await ref.read(userNotifierProvider.notifier).updateUser(updatedUser);
+
         if (mounted) {
-          context.go('/users');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User updated successfully')),
-          );
+          if (result) {
+            context.go('/users');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('User role updated successfully')),
+            );
+          } else {
+            throw Exception('Failed to update user role');
+          }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating user: $e')),
+            SnackBar(content: Text('Error updating user role: $e')),
           );
         }
       } finally {

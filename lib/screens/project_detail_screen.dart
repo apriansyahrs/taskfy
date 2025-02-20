@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/models/project.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/config/constants.dart';
-import 'package:taskfy/providers/project_providers.dart';
 
 final projectProvider = StateNotifierProvider.family<ProjectNotifier, AsyncValue<Project?>, String>((ref, projectId) {
   return ProjectNotifier();

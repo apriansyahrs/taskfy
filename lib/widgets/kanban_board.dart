@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// A generic Kanban board widget.
 class KanbanBoard<T> extends StatelessWidget {
   final List<T> items;
   final String Function(T) getTitle;
@@ -11,7 +10,7 @@ class KanbanBoard<T> extends StatelessWidget {
   final Widget Function(T)? buildItemDetails;
 
   const KanbanBoard({
-    Key? key,
+    super.key,
     required this.items,
     required this.getTitle,
     required this.getStatus,
@@ -19,7 +18,7 @@ class KanbanBoard<T> extends StatelessWidget {
     required this.statuses,
     required this.canEdit,
     this.buildItemDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +52,6 @@ class KanbanBoard<T> extends StatelessWidget {
   }
 }
 
-/// A column in the Kanban board representing a status.
 class KanbanColumn<T> extends StatelessWidget {
   final String status;
   final List<T> items;
@@ -64,7 +62,7 @@ class KanbanColumn<T> extends StatelessWidget {
   final Widget Function(T)? buildItemDetails;
 
   const KanbanColumn({
-    Key? key,
+    super.key,
     required this.status,
     required this.items,
     required this.getTitle,
@@ -72,7 +70,7 @@ class KanbanColumn<T> extends StatelessWidget {
     required this.canEdit,
     required this.width,
     this.buildItemDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +109,6 @@ class KanbanColumn<T> extends StatelessWidget {
   }
 }
 
-/// A card in the Kanban board representing an item.
 class KanbanCard<T> extends StatelessWidget {
   final T item;
   final String Function(T) getTitle;
@@ -120,13 +117,13 @@ class KanbanCard<T> extends StatelessWidget {
   final Widget Function(T)? buildItemDetails;
 
   const KanbanCard({
-    Key? key,
+    super.key,
     required this.item,
     required this.getTitle,
     required this.onStatusChange,
     required this.canEdit,
     this.buildItemDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +156,7 @@ class KanbanCard<T> extends StatelessWidget {
                         );
                       }).toList();
                     },
-                    child: Chip(
+                    child: const Chip(
                       label: Text('Change Status'),
                       avatar: Icon(Icons.edit),
                     ),

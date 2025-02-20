@@ -112,7 +112,11 @@ class AuthService {
   /// Initiates the password reset process for a given email.
   Future<void> resetPassword(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(email);
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'io.supabase.flutterquickstart://reset-callback/',
+      );
+      _log.info('Password reset email sent to: $email');
     } catch (e) {
       _log.warning('Error resetting password: $e');
       throw e;
@@ -126,6 +130,19 @@ class AuthService {
       _log.info('User role updated: $userId to $newRole');
     } catch (e) {
       _log.warning('Error updating user role: $e');
+      throw e;
+    }
+  }
+
+  /// Updates the user's password during the reset process.
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(
+        supabase.UserAttributes(password: newPassword),
+      );
+      _log.info('Password updated successfully');
+    } catch (e) {
+      _log.warning('Error updating password: $e');
       throw e;
     }
   }

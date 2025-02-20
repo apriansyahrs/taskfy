@@ -1,36 +1,56 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase/src/supabase_stream_builder.dart';
 import 'package:taskfy/models/task.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/utils/error_handler.dart';
+import 'package:taskfy/providers/auth_provider.dart';
 
 /// Provider for a list of tasks, optionally filtered by user email.
-final taskListProvider =
-    StreamProvider.family<List<Task>, String?>((ref, userEmail) {
+final taskListStreamProvider = StreamProvider.family<List<Task>, String?>((ref, userEmail) async* {
   final supabase = getIt<SupabaseClientWrapper>().client;
-  final query = supabase.from('tasks').stream(primaryKey: ['id']);
-
+  
+  Stream<List<Map<String, dynamic>>> stream;
   if (userEmail != null) {
-    return query
-        .eq('assigned_to', [userEmail])
+    final user = ref.watch(authProvider);
+    if (user?.role == 'admin' || user?.role == 'manager') {
+      // For admin and manager, return all tasks
+      stream = supabase.from('tasks').stream(primaryKey: ['id']);
+    } else {
+      // For other roles, return only assigned tasks
+      stream = supabase
+        .from('tasks')
+        .select()
+        .filter('assigned_to', 'cs', '{$userEmail}')
         .order('deadline')
-        .map((data) => data.map((json) => Task.fromJson(json)).toList());
+        .then((data) => data.map((json) => json as Map<String, dynamic>).toList())
+        .asStream();
+    }
   } else {
-    return query
-        .order('deadline')
-        .map((data) => data.map((json) => Task.fromJson(json)).toList());
+    // If no userEmail is provided, return all tasks (useful for admin views)
+    stream = supabase.from('tasks').stream(primaryKey: ['id']);
+  }
+
+  await for (final data in stream) {
+    final tasks = data.map((json) => Task.fromJson(json)).toList();
+    tasks.sort((a, b) => a.deadline.compareTo(b.deadline));
+    yield tasks;
   }
 });
 
 /// Provider for a single task, identified by its ID.
-final taskProvider = StreamProvider.family<Task?, String>((ref, taskId) {
-  return getIt<SupabaseClientWrapper>()
-      .client
+final taskProvider = StreamProvider.family<Task?, String>((ref, taskId) async* {
+  final stream = getIt<SupabaseClientWrapper>().client
       .from('tasks')
       .stream(primaryKey: ['id'])
-      .eq('id', taskId)
-      .map((data) => data.isNotEmpty ? Task.fromJson(data.first) : null);
+      .eq('id', taskId);
+
+  await for (final data in stream) {
+    if (data.isNotEmpty) {
+      yield Task.fromJson(data.first);
+    } else {
+      yield null;
+    }
+  }
 });
 
 /// Notifier for managing task state and operations.

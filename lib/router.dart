@@ -21,8 +21,8 @@ import 'package:taskfy/middleware/auth_middleware.dart';
 import 'package:taskfy/screens/my_tasks_screen.dart';
 import 'package:taskfy/screens/my_projects_screen.dart';
 import 'package:taskfy/config/constants.dart';
+import 'package:taskfy/screens/reset_password_screen.dart';
 
-/// Provider for the application's router.
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
@@ -40,6 +40,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const ForgotPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          child: const ResetPasswordScreen(),
         ),
       ),
       GoRoute(
@@ -176,16 +183,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = authState.value != null;
       final isLoggingIn = state.uri.path == '/';
       final isForgotPassword = state.uri.path == '/forgot-password';
+      final isResetPassword = state.uri.path == '/reset-password';
 
-      if (!isLoggedIn && !isLoggingIn && !isForgotPassword) {
+      if (!isLoggedIn && !isLoggingIn && !isForgotPassword && !isResetPassword) {
         return '/';
       }
 
-      if (isLoggedIn && (isLoggingIn || isForgotPassword)) {
+      if (isLoggedIn && (isLoggingIn || isForgotPassword || isResetPassword)) {
         return AppConstants.dashboardRoute;
       }
 
-      // Role-based redirects
       final userRole = authState.value?.role;
       if (isLoggedIn && userRole != null) {
         if (state.uri.path.startsWith(AppConstants.usersRoute) && !_hasPermission(AppConstants.permissionManageUsers, userRole)) {
@@ -210,7 +217,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Checks if a user has a specific permission based on their role.
 bool _hasPermission(String permission, String role) {
   switch (role) {
     case AppConstants.roleAdmin:

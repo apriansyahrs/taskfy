@@ -6,7 +6,6 @@ import 'package:taskfy/utils/error_handler.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 
-/// The entry point of the application.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
@@ -15,10 +14,8 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-/// Provider for the app's theme mode.
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
-/// The root widget of the application.
 class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 

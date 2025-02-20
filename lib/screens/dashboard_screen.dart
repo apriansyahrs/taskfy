@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/providers/project_providers.dart';
-import 'package:taskfy/providers/auth_provider.dart'; // Import auth provider
+import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/widgets/project_chart.dart';
 import 'package:taskfy/widgets/stat_card.dart';
 import 'package:taskfy/widgets/app_layout.dart';
@@ -19,8 +19,8 @@ class DashboardScreen extends ConsumerWidget {
     final user = ref.watch(authProvider);
     final userEmail = user?.email;
     final userRole = user?.role ?? '';
-    final tasksAsyncValue = ref.watch(taskListProvider(userRole == 'pegawai' ? userEmail : null));
-    final projectsAsyncValue = ref.watch(projectListProvider(userRole == 'pegawai' ? userEmail : null));
+    final tasksAsyncValue = ref.watch(taskListStreamProvider(userRole == 'pegawai' ? userEmail : null));
+    final projectsAsyncValue = ref.watch(projectListStreamProvider(userRole == 'pegawai' ? userEmail : null));
 
     return AppLayout(
       title: 'Task Manager',

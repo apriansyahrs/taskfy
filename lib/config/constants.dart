@@ -1,7 +1,4 @@
 class AppConstants {
-  // API endpoints
-  static const String apiBaseUrl = 'https://api.example.com';
-
   // Route names
   static const String loginRoute = '/login';
   static const String dashboardRoute = '/dashboard';

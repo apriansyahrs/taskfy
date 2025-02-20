@@ -1,4 +1,3 @@
-/// Represents a task in the application.
 class Task {
   final String? id;
   final String name;
@@ -9,7 +8,6 @@ class Task {
   final DateTime deadline;
   final List<String> attachments;
 
-  /// Creates a new [Task] instance.
   Task({
     this.id,
     required this.name,
@@ -21,7 +19,6 @@ class Task {
     this.attachments = const [],
   }) : assert(assignedTo.length <= 3, 'A task can be assigned to a maximum of 3 people');
 
-  /// Creates a [Task] instance from a JSON map.
   factory Task.fromJson(Map<String, dynamic> json) {
     return Task(
       id: json['id'] as String?,
@@ -35,7 +32,6 @@ class Task {
     );
   }
 
-  /// Converts the [Task] instance to a JSON map.
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
@@ -49,7 +45,6 @@ class Task {
     };
   }
 
-  /// Creates a copy of this [Task] instance with the given fields replaced with new values.
   Task copyWith({
     String? id,
     String? name,

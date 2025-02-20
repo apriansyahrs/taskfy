@@ -28,8 +28,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     final userEmail = user?.email;
-    final userRole = user?.role ?? '';
-    final projectsAsyncValue = ref.watch(projectListProvider(userRole == AppConstants.roleEmployee ? userEmail : null));
+    final projectsAsyncValue = ref.watch(projectListStreamProvider(userEmail));
     final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
@@ -79,7 +78,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
         getTitle: (project) => project.name,
         getStatus: (project) => project.status,
         onStatusChange: (project, newStatus) {
-          if (permissions.contains(AppConstants.permissionUpdateProjectStatus) && project.teamMembers.contains(currentUser?.email)) {
+          if (permissions.contains(AppConstants.permissionUpdateProjectStatus) && project.teamMembers.any((email) => email.trim().toLowerCase() == currentUser?.email?.trim().toLowerCase())) {
             ref.read(projectNotifierProvider.notifier).updateProject(project.copyWith(status: newStatus));
           }
         },
@@ -156,7 +155,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
 class _StatCards extends StatelessWidget {
   final List<Project> projects;
 
-  const _StatCards({Key? key, required this.projects}) : super(key: key);
+  const _StatCards({super.key, required this.projects});
 
   @override
   Widget build(BuildContext context) {
@@ -224,11 +223,11 @@ class _ProjectTable extends StatelessWidget {
   final Function(String) onDelete;
 
   const _ProjectTable({
-    Key? key,
+    super.key,
     required this.projects,
     required this.permissions,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

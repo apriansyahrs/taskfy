@@ -3,33 +3,56 @@ import 'package:taskfy/models/project.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:logging/logging.dart';
+import 'package:taskfy/providers/auth_provider.dart';
 
 final _log = Logger('ProjectNotifier');
 
 /// Provider for a list of projects, optionally filtered by user email.
-final projectListProvider = StreamProvider.family<List<Project>, String?>((ref, userEmail) {
+final projectListStreamProvider = StreamProvider.family<List<Project>, String?>((ref, userEmail) async* {
   final supabase = getIt<SupabaseClientWrapper>().client;
-  final query = supabase.from('projects').stream(primaryKey: ['id']);
-
+  
+  Stream<List<Map<String, dynamic>>> stream;
   if (userEmail != null) {
-    return query
-      .eq('team_members', [userEmail])
-      .order('end_date')
-      .map((data) => data.map((json) => Project.fromJson(json)).toList());
+    final user = ref.watch(authProvider);
+    if (user?.role == 'admin' || user?.role == 'manager') {
+      // For admin and manager, return all projects
+      stream = supabase.from('projects').stream(primaryKey: ['id']);
+    } else {
+      // For other roles, return only projects they're part of
+      stream = supabase
+        .from('projects')
+        .select()
+        .filter('team_members', 'cs', '{$userEmail}')
+        .order('end_date')
+        .then((data) => data.map((json) => json as Map<String, dynamic>).toList())
+        .asStream();
+    }
   } else {
-    return query
-      .order('end_date')
-      .map((data) => data.map((json) => Project.fromJson(json)).toList());
+    // If no userEmail is provided, return all projects (useful for admin views)
+    stream = supabase.from('projects').stream(primaryKey: ['id']);
+  }
+
+  await for (final data in stream) {
+    final projects = data.map((json) => Project.fromJson(json)).toList();
+    projects.sort((a, b) => a.endDate.compareTo(b.endDate));
+    yield projects;
   }
 });
 
 /// Provider for a single project, identified by its ID.
-final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) {
-  return getIt<SupabaseClientWrapper>().client
+final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) async* {
+  final stream = getIt<SupabaseClientWrapper>().client
       .from('projects')
       .stream(primaryKey: ['id'])
-      .eq('id', projectId)
-      .map((data) => data.isNotEmpty ? Project.fromJson(data.first) : null);
+      .eq('id', projectId);
+
+  await for (final data in stream) {
+    if (data.isNotEmpty) {
+      yield Project.fromJson(data.first);
+    } else {
+      yield null;
+    }
+  }
 });
 
 /// Notifier for managing project state and operations.

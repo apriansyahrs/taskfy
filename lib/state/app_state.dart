@@ -18,5 +18,3 @@ final userRoleProvider = Provider<String?>((ref) {
   return user?.role;
 });
 
-// Add more providers for tasks, projects, etc.
-

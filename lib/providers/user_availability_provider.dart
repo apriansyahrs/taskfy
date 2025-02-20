@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/providers/project_providers.dart';
 
 final userAvailabilityProvider = Provider.family<bool, UserAvailabilityParams>((ref, params) {
-  final projects = ref.watch(projectListProvider(null)).value ?? [];
-  
+  final projects = ref.watch(projectListStreamProvider(null)).value ?? [];
+
   for (final project in projects) {
     if (project.teamMembers.contains(params.userEmail) &&
         _isDateInRange(params.date, project.startDate, project.endDate) &&
@@ -11,7 +11,7 @@ final userAvailabilityProvider = Provider.family<bool, UserAvailabilityParams>((
       return false;
     }
   }
-  
+
   return true;
 });
 

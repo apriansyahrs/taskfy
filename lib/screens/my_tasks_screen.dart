@@ -8,41 +8,186 @@ import 'package:taskfy/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 
 class MyTasksScreen extends ConsumerWidget {
-  const MyTasksScreen({Key? key}) : super(key: key);
+  const MyTasksScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final tasksAsyncValue = ref.watch(taskListProvider(user?.email));
+    final tasksAsyncValue = ref.watch(taskListStreamProvider(user?.email?.trim().toLowerCase()));
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'My Tasks',
       child: tasksAsyncValue.when(
-        data: (tasks) => KanbanBoard<Task>(
-          items: tasks,
-          getTitle: (task) => task.name,
-          getStatus: (task) => task.status,
-          onStatusChange: (task, newStatus) {
-            ref.read(taskNotifierProvider.notifier).updateTask(task.copyWith(status: newStatus));
-          },
-          statuses: ['not_started', 'in_progress', 'completed'],
-          canEdit: (task) => true, // Pegawai selalu dapat mengubah status tugas mereka sendiri
-          buildItemDetails: (task) => Column(
+        data: (tasks) {
+          final userTasks = tasks.where((task) => isUserAssigned(task, user?.email)).toList();
+          final todayTasks = userTasks.where((task) => isToday(task.deadline)).toList();
+          final upcomingTasks = userTasks.where((task) => isFuture(task.deadline)).toList();
+          final pastDueTasks = userTasks.where((task) => isPastDue(task.deadline)).toList();
+
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Description: ${task.description}'),
-              SizedBox(height: 8),
-              Text('Priority: ${task.priority}'),
-              SizedBox(height: 8),
-              Text('Deadline: ${DateFormat('MMM d, y').format(task.deadline)}'),
-              SizedBox(height: 8),
-              Text('Assigned To: ${task.assignedTo.join(", ")}'),
+              _buildSectionHeader(context, "Today's Tasks", Icons.today),
+              Expanded(
+                flex: 2,
+                child: KanbanBoard<Task>(
+                  items: todayTasks,
+                  getTitle: (task) => task.name,
+                  getStatus: (task) => task.status,
+                  onStatusChange: (task, newStatus) {
+                    ref.read(taskNotifierProvider.notifier).updateTask(task.copyWith(status: newStatus));
+                  },
+                  statuses: ['not_started', 'in_progress', 'completed'],
+                  canEdit: (task) => true,
+                  buildItemDetails: (task) => _buildTaskDetails(task),
+                ),
+              ),
+              SizedBox(height: 24),
+              _buildSectionHeader(context, "Task Overview", Icons.assessment),
+              Expanded(
+                flex: 1,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildTaskOverview("Upcoming", upcomingTasks, context, ref, Colors.blue),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTaskOverview("Past Due", pastDueTasks, context, ref, Colors.red),
+                    ),
+                  ],
+                ),
+              ),
             ],
-          ),
-        ),
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: Theme.of(context).primaryColor),
+          SizedBox(width: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool isUserAssigned(Task task, String? userEmail) {
+    return task.assignedTo.any((email) => email.trim().toLowerCase() == userEmail?.trim().toLowerCase());
+  }
+
+  bool isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  bool isFuture(DateTime date) {
+    return date.isAfter(DateTime.now());
+  }
+
+  bool isPastDue(DateTime date) {
+    return date.isBefore(DateTime.now());
+  }
+
+  Widget _buildTaskDetails(Task task) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Description: ${task.description}'),
+        SizedBox(height: 8),
+        _buildPriorityChip(task.priority),
+        SizedBox(height: 8),
+        Text('Deadline: ${DateFormat('MMM d, y').format(task.deadline)}'),
+      ],
+    );
+  }
+
+  Widget _buildPriorityChip(String priority) {
+    Color chipColor;
+    switch (priority.toLowerCase()) {
+      case 'high':
+        chipColor = Colors.red;
+        break;
+      case 'medium':
+        chipColor = Colors.orange;
+        break;
+      case 'low':
+        chipColor = Colors.green;
+        break;
+      default:
+        chipColor = Colors.grey;
+    }
+
+    return Chip(
+      label: Text(
+        priority,
+        style: TextStyle(color: Colors.white),
+      ),
+      backgroundColor: chipColor,
+    );
+  }
+
+  Widget _buildTaskOverview(String title, List<Task> tasks, BuildContext context, WidgetRef ref, Color color) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ),
+                Text(
+                  '${tasks.length}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: tasks.length,
+              itemBuilder: (context, index) {
+                final task = tasks[index];
+                return ListTile(
+                  title: Text(task.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(DateFormat('MMM d, y').format(task.deadline)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.arrow_forward_ios, size: 16),
+                    onPressed: () {
+                      // Implement task details view
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

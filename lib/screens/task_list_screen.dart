@@ -34,8 +34,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     final userEmail = user?.email;
-    final userRole = user?.role ?? '';
-    final tasksAsyncValue = ref.watch(taskListProvider(userRole == AppConstants.roleEmployee ? userEmail : null));
+    final tasksAsyncValue = ref.watch(taskListStreamProvider(userEmail));
     final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
@@ -266,7 +265,7 @@ class _TaskTable extends StatelessWidget {
   }
 
   DataRow _buildTaskRow(BuildContext context, Task task) {
-    final isAssignedToTask = task.assignedTo.contains(currentUser?.email);
+    final isAssignedToTask = task.assignedTo.any((email) => email.trim().toLowerCase() == currentUser?.email?.trim().toLowerCase());
 
     return DataRow(
       cells: [

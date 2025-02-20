@@ -8,10 +8,10 @@ class AuthMiddleware extends ConsumerWidget {
   final List<String> allowedRoles;
 
   const AuthMiddleware({
-    Key? key,
+    super.key,
     required this.child,
     required this.allowedRoles,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
