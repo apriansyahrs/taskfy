@@ -6,6 +6,7 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class MyTasksScreen extends ConsumerWidget {
   const MyTasksScreen({super.key});
@@ -13,7 +14,7 @@ class MyTasksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final tasksAsyncValue = ref.watch(taskListStreamProvider(user?.email?.trim().toLowerCase()));
+    final tasksAsyncValue = ref.watch(taskListStreamProvider(user?.email.trim().toLowerCase()));
 
     return AppLayout(
       title: 'Task Manager',
@@ -25,41 +26,65 @@ class MyTasksScreen extends ConsumerWidget {
           final upcomingTasks = userTasks.where((task) => isFuture(task.deadline)).toList();
           final pastDueTasks = userTasks.where((task) => isPastDue(task.deadline)).toList();
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader(context, "Today's Tasks", Icons.today),
-              Expanded(
-                flex: 2,
-                child: KanbanBoard<Task>(
-                  items: todayTasks,
-                  getTitle: (task) => task.name,
-                  getStatus: (task) => task.status,
-                  onStatusChange: (task, newStatus) {
-                    ref.read(taskNotifierProvider.notifier).updateTask(task.copyWith(status: newStatus));
-                  },
-                  statuses: ['not_started', 'in_progress', 'completed'],
-                  canEdit: (task) => true,
-                  buildItemDetails: (task) => _buildTaskDetails(task),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader(context, "Today's Tasks", Icons.today),
+                      SizedBox(
+                        height: 400, // Fixed height for Kanban board
+                        child: KanbanBoard<Task>(
+                          items: todayTasks,
+                          getTitle: (task) => task.name,
+                          getStatus: (task) => task.status,
+                          onStatusChange: (task, newStatus) {
+                            ref.read(taskNotifierProvider.notifier).updateTask(
+                                  task.copyWith(status: newStatus),
+                                );
+                          },
+                          statuses: ['not_started', 'in_progress', 'completed'],
+                          canEdit: (task) => true,
+                          buildItemDetails: (task) => _buildTaskDetails(context, task),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(context, "Task Overview", Icons.assessment),
+                      SizedBox(
+                        height: 300, // Fixed height for overview section
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _buildTaskOverview(
+                                context,
+                                "Upcoming",
+                                upcomingTasks,
+                                ref,
+                                ThemeConfig.infoColor,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildTaskOverview(
+                                context,
+                                "Past Due",
+                                pastDueTasks,
+                                ref,
+                                ThemeConfig.errorColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 24),
-              _buildSectionHeader(context, "Task Overview", Icons.assessment),
-              Expanded(
-                flex: 1,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildTaskOverview("Upcoming", upcomingTasks, context, ref, Colors.blue),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTaskOverview("Past Due", pastDueTasks, context, ref, Colors.red),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -73,13 +98,13 @@ class MyTasksScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Row(
         children: [
-          Icon(icon, size: 28, color: Theme.of(context).primaryColor),
-          SizedBox(width: 8),
+          Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
           Text(
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -104,56 +129,56 @@ class MyTasksScreen extends ConsumerWidget {
     return date.isBefore(DateTime.now());
   }
 
-  Widget _buildTaskDetails(Task task) {
+  Widget _buildTaskDetails(BuildContext context, Task task) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Description: ${task.description}'),
-        SizedBox(height: 8),
-        _buildPriorityChip(task.priority),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
+        _buildPriorityChip(context, task.priority),
+        const SizedBox(height: 8),
         Text('Deadline: ${DateFormat('MMM d, y').format(task.deadline)}'),
       ],
     );
   }
 
-  Widget _buildPriorityChip(String priority) {
+  Widget _buildPriorityChip(BuildContext context, String priority) {
     Color chipColor;
     switch (priority.toLowerCase()) {
       case 'high':
-        chipColor = Colors.red;
+        chipColor = ThemeConfig.errorColor;
         break;
       case 'medium':
-        chipColor = Colors.orange;
+        chipColor = ThemeConfig.warningColor;
         break;
       case 'low':
-        chipColor = Colors.green;
+        chipColor = ThemeConfig.successColor;
         break;
       default:
-        chipColor = Colors.grey;
+        chipColor = Theme.of(context).disabledColor;
     }
 
     return Chip(
       label: Text(
         priority,
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
       ),
       backgroundColor: chipColor,
     );
   }
 
-  Widget _buildTaskOverview(String title, List<Task> tasks, BuildContext context, WidgetRef ref, Color color) {
+  Widget _buildTaskOverview(BuildContext context, String title, List<Task> tasks, WidgetRef ref, Color color) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,10 +200,10 @@ class MyTasksScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final task = tasks[index];
                 return ListTile(
-                  title: Text(task.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(task.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(DateFormat('MMM d, y').format(task.deadline)),
                   trailing: IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, size: 16),
+                    icon: const Icon(Icons.arrow_forward_ios, size: 16),
                     onPressed: () {
                       // Implement task details view
                     },

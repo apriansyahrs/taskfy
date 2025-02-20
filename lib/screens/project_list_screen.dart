@@ -22,7 +22,6 @@ class ProjectListScreen extends ConsumerStatefulWidget {
 
 class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
   String _searchQuery = '';
-  bool _isKanbanView = false;
 
   @override
   Widget build(BuildContext context) {
@@ -41,23 +40,13 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
             label: Text('New Project'),
             onPressed: () => context.go('${AppConstants.projectsRoute}/create'),
           ),
-        IconButton(
-          icon: Icon(_isKanbanView ? Icons.view_list : Icons.view_column),
-          onPressed: () {
-            setState(() {
-              _isKanbanView = !_isKanbanView;
-            });
-          },
-        ),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatCards(projectsAsyncValue),
           const SizedBox(height: 32),
-          _isKanbanView
-              ? _buildKanbanView(projectsAsyncValue, permissions, user)
-              : _buildProjectList(context, projectsAsyncValue, permissions),
+          _buildProjectList(context, projectsAsyncValue, permissions),
         ],
       ),
     );

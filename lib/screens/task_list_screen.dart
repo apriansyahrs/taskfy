@@ -22,7 +22,6 @@ class TaskListScreen extends ConsumerStatefulWidget {
 
 class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   final _searchController = TextEditingController();
-  bool _isKanbanView = false;
 
   @override
   void dispose() {
@@ -47,23 +46,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
             label: const Text('New Task'),
             onPressed: () => context.go('${AppConstants.tasksRoute}/create'),
           ),
-        IconButton(
-          icon: Icon(_isKanbanView ? Icons.view_list : Icons.view_column),
-          onPressed: () {
-            setState(() {
-              _isKanbanView = !_isKanbanView;
-            });
-          },
-        ),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatCards(tasksAsyncValue),
           const SizedBox(height: 32),
-          _isKanbanView
-              ? _buildKanbanView(tasksAsyncValue, permissions, user)
-              : _buildTaskList(context, tasksAsyncValue, permissions),
+          _buildTaskList(context, tasksAsyncValue, permissions),
         ],
       ),
     );

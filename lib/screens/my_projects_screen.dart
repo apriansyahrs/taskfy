@@ -6,6 +6,7 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class MyProjectsScreen extends ConsumerWidget {
   const MyProjectsScreen({super.key});
@@ -24,31 +25,42 @@ class MyProjectsScreen extends ConsumerWidget {
           final activeProjects = userProjects.where((project) => project.status != 'completed').toList();
           final completedProjects = userProjects.where((project) => project.status == 'completed').toList();
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader(context, "Active Projects", Icons.work),
-              Expanded(
-                flex: 2,
-                child: KanbanBoard<Project>(
-                  items: activeProjects,
-                  getTitle: (project) => project.name,
-                  getStatus: (project) => project.status,
-                  onStatusChange: (project, newStatus) {
-                    ref.read(projectNotifierProvider.notifier).updateProject(project.copyWith(status: newStatus));
-                  },
-                  statuses: ['not_started', 'in_progress', 'on_hold'],
-                  canEdit: (project) => true,
-                  buildItemDetails: (project) => _buildProjectDetails(project),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader(context, "Active Projects", Icons.work),
+                      SizedBox(
+                        height: 400, // Fixed height for Kanban board
+                        child: KanbanBoard<Project>(
+                          items: activeProjects,
+                          getTitle: (project) => project.name,
+                          getStatus: (project) => project.status,
+                          onStatusChange: (project, newStatus) {
+                            ref.read(projectNotifierProvider.notifier).updateProject(
+                                  project.copyWith(status: newStatus),
+                                );
+                          },
+                          statuses: ['not_started', 'in_progress', 'on_hold'],
+                          canEdit: (project) => true,
+                          buildItemDetails: (project) => _buildProjectDetails(context, project),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(context, "Completed Projects", Icons.check_circle),
+                      SizedBox(
+                        height: 300, // Fixed height for completed projects list
+                        child: _buildCompletedProjectsList(context, completedProjects, ref),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 24),
-              _buildSectionHeader(context, "Completed Projects", Icons.check_circle),
-              Expanded(
-                flex: 1,
-                child: _buildCompletedProjectsList(completedProjects, context, ref),
-              ),
-            ],
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -62,13 +74,13 @@ class MyProjectsScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Row(
         children: [
-          Icon(icon, size: 28, color: Theme.of(context).primaryColor),
-          SizedBox(width: 8),
+          Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
           Text(
             title,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -80,74 +92,74 @@ class MyProjectsScreen extends ConsumerWidget {
     return project.teamMembers.any((email) => email.trim().toLowerCase() == userEmail?.trim().toLowerCase());
   }
 
-  Widget _buildProjectDetails(Project project) {
+  Widget _buildProjectDetails(BuildContext context, Project project) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Description: ${project.description}'),
-        SizedBox(height: 8),
-        _buildPriorityChip(project.priority),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
+        _buildPriorityChip(context, project.priority),
+        const SizedBox(height: 8),
         Text('Start: ${DateFormat('MMM d, y').format(project.startDate)}'),
         Text('End: ${DateFormat('MMM d, y').format(project.endDate)}'),
-        SizedBox(height: 8),
-        _buildProgressBar(project.completion),
+        const SizedBox(height: 8),
+        _buildProgressBar(context, project.completion),
       ],
     );
   }
 
-  Widget _buildPriorityChip(String priority) {
+  Widget _buildPriorityChip(BuildContext context, String priority) {
     Color chipColor;
     switch (priority.toLowerCase()) {
       case 'high':
-        chipColor = Colors.red;
+        chipColor = ThemeConfig.errorColor;
         break;
       case 'medium':
-        chipColor = Colors.orange;
+        chipColor = ThemeConfig.warningColor;
         break;
       case 'low':
-        chipColor = Colors.green;
+        chipColor = ThemeConfig.successColor;
         break;
       default:
-        chipColor = Colors.grey;
+        chipColor = Theme.of(context).disabledColor;
     }
 
     return Chip(
       label: Text(
         priority,
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
       ),
       backgroundColor: chipColor,
     );
   }
 
-  Widget _buildProgressBar(double completion) {
+  Widget _buildProgressBar(BuildContext context, double completion) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Completion: ${completion.toStringAsFixed(1)}%'),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         LinearProgressIndicator(
           value: completion / 100,
-          backgroundColor: Colors.grey[300],
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       ],
     );
   }
 
-  Widget _buildCompletedProjectsList(List<Project> projects, BuildContext context, WidgetRef ref) {
+  Widget _buildCompletedProjectsList(BuildContext context, List<Project> projects, WidgetRef ref) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              color: ThemeConfig.successColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,10 +181,10 @@ class MyProjectsScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final project = projects[index];
                 return ListTile(
-                  title: Text(project.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text('Completed on: ${DateFormat('MMM d, y').format(project.endDate)}'),
                   trailing: IconButton(
-                    icon: Icon(Icons.info_outline),
+                    icon: const Icon(Icons.info_outline),
                     onPressed: () {
                       // Implement project details view
                     },
@@ -186,4 +198,3 @@ class MyProjectsScreen extends ConsumerWidget {
     );
   }
 }
-
