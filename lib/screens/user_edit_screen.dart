@@ -4,6 +4,9 @@ import 'package:taskfy/models/user.dart' as taskfy_user;
 import 'package:taskfy/providers/user_provider.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('UserEditScreen');
 
 class UserEditScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -19,17 +22,6 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   late TextEditingController _emailController;
   String _selectedRole = 'pegawai';
   bool _isLoading = false;
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter an email';
-    }
-    final emailRegExp = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegExp.hasMatch(value)) {
-      return 'Please enter a valid email';
-    }
-    return null;
-  }
 
   @override
   void initState() {
@@ -63,11 +55,10 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
             return const Center(child: Text('User not found'));
           }
           _emailController.text = user.email;
-          // Hanya set _selectedRole jika belum diinisialisasi
           if (_selectedRole == 'pegawai') {
             _selectedRole = user.role;
           }
-          print('Current selected role: $_selectedRole');
+          _log.info('Current selected role: $_selectedRole');
 
           return SingleChildScrollView(
             child: Padding(
@@ -99,7 +90,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
                         if (newValue != null) {
                           setState(() {
                             _selectedRole = newValue;
-                            print('Role changed to: $_selectedRole');
+                            _log.info('Role changed to: $_selectedRole');
                           });
                         }
                       },
@@ -137,7 +128,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
       });
 
       try {
-        print('Updating user with role: $_selectedRole');
+        _log.info('Updating user with role: $_selectedRole');
         final updatedUser = taskfy_user.User(
           id: widget.userId,
           email: _emailController.text,
@@ -148,18 +139,19 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
 
         if (mounted) {
           if (result) {
-            context.go('/users');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('User role updated successfully')),
-            );
+            _log.info('User role updated successfully');
+            context.pop();
           } else {
-            throw Exception('Failed to update user role');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to update user role')),
+            );
           }
         }
       } catch (e) {
+        _log.warning('Error updating user: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating user role: $e')),
+            SnackBar(content: Text('Error: $e')),
           );
         }
       } finally {

@@ -110,18 +110,18 @@ class ThemeConfig {
     // Button Theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(accentColorLight),
-        foregroundColor: MaterialStateProperty.all(primaryLight),
-        padding: MaterialStateProperty.all(
+        backgroundColor: WidgetStateProperty.all(accentColorLight),
+        foregroundColor: WidgetStateProperty.all(primaryLight),
+        padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        elevation: MaterialStateProperty.all(0),
-        textStyle: MaterialStateProperty.all(
+        elevation: WidgetStateProperty.all(0),
+        textStyle: WidgetStateProperty.all(
           const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -158,8 +158,8 @@ class ThemeConfig {
 
     // Checkbox Theme
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorLight;
         }
         return borderLight;
@@ -171,14 +171,14 @@ class ThemeConfig {
 
     // Switch Theme
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorLight;
         }
         return textSecondaryLight;
       }),
-      trackColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorLight.withOpacity(0.5);
         }
         return textSecondaryLight.withOpacity(0.3);
@@ -282,18 +282,18 @@ class ThemeConfig {
 
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.all(accentColorDark),
-        foregroundColor: MaterialStateProperty.all(textPrimaryDark),
-        padding: MaterialStateProperty.all(
+        backgroundColor: WidgetStateProperty.all(accentColorDark),
+        foregroundColor: WidgetStateProperty.all(textPrimaryDark),
+        padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        elevation: MaterialStateProperty.all(0),
-        textStyle: MaterialStateProperty.all(
+        elevation: WidgetStateProperty.all(0),
+        textStyle: WidgetStateProperty.all(
           const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -326,8 +326,8 @@ class ThemeConfig {
     ),
 
     checkboxTheme: CheckboxThemeData(
-      fillColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      fillColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorDark;
         }
         return borderDark;
@@ -338,14 +338,14 @@ class ThemeConfig {
     ),
 
     switchTheme: SwitchThemeData(
-      thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorDark;
         }
         return textSecondaryDark;
       }),
-      trackColor: MaterialStateProperty.resolveWith<Color>((states) {
-        if (states.contains(MaterialState.selected)) {
+      trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
           return accentColorDark.withOpacity(0.5);
         }
         return textSecondaryDark.withOpacity(0.3);

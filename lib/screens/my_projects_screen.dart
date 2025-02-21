@@ -14,7 +14,7 @@ class MyProjectsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final projectsAsyncValue = ref.watch(projectListStreamProvider(user?.email?.trim().toLowerCase()));
+    final projectsAsyncValue = ref.watch(projectListStreamProvider(user?.email.trim().toLowerCase()));
 
     return AppLayout(
       title: 'Task Manager',
@@ -141,7 +141,7 @@ class MyProjectsScreen extends ConsumerWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: completion / 100,
-          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       ],

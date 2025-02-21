@@ -15,10 +15,11 @@ class AuthService {
   supabase.SupabaseClient get _supabase => _supabaseClientWrapper.client;
 
   /// Stream of authentication state changes.
-  Stream<User?> get authStateChanges => _supabase.auth.onAuthStateChange.asyncMap((event) async {
-    final session = event.session;
-    return session != null ? await _getUserFromSession(session) : null;
-  });
+  Stream<User?> get authStateChanges =>
+      _supabase.auth.onAuthStateChange.asyncMap((event) async {
+        final session = event.session;
+        return session != null ? await _getUserFromSession(session) : null;
+      });
 
   /// Retrieves the user data from a given session.
   Future<User?> _getUserFromSession(supabase.Session session) async {
@@ -53,7 +54,9 @@ class AuthService {
         password: password,
       );
       _log.info('User signed in: $email');
-      return response.user != null ? await _getUserFromSession(response.session!) : null;
+      return response.user != null
+          ? await _getUserFromSession(response.session!)
+          : null;
     } catch (e) {
       _log.warning('Error signing in: $e');
       return null;
@@ -119,7 +122,7 @@ class AuthService {
       _log.info('Password reset email sent to: $email');
     } catch (e) {
       _log.warning('Error resetting password: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -130,7 +133,7 @@ class AuthService {
       _log.info('User role updated: $userId to $newRole');
     } catch (e) {
       _log.warning('Error updating user role: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -143,11 +146,11 @@ class AuthService {
       _log.info('Password updated successfully');
     } catch (e) {
       _log.warning('Error updating password: $e');
-      throw e;
+      rethrow;
     }
   }
 }
 
 /// Provider for the AuthService.
-final authServiceProvider = Provider<AuthService>((ref) => AuthService(SupabaseClientWrapper()));
-
+final authServiceProvider =
+    Provider<AuthService>((ref) => AuthService(SupabaseClientWrapper()));

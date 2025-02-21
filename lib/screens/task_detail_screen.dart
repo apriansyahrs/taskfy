@@ -9,6 +9,7 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:mime/mime.dart';
+import 'package:taskfy/config/style_guide.dart';
 
 final taskProvider = StreamProvider.family<Task?, String>((ref, taskId) {
   return getIt<SupabaseClientWrapper>().client
@@ -49,21 +50,21 @@ class TaskDetailScreen extends ConsumerWidget {
   Widget _buildTaskDetails(BuildContext context, WidgetRef ref, Task task, Set<String> permissions) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTaskHeader(context, task),
-            SizedBox(height: 24),
+            SizedBox(height: StyleGuide.spacingLarge),
             _buildTaskInfo(context, task),
-            SizedBox(height: 24),
+            SizedBox(height: StyleGuide.spacingLarge),
             if (permissions.contains('update_task'))
               _buildStatusUpdate(context, ref, task),
-            SizedBox(height: 24),
+            SizedBox(height: StyleGuide.spacingLarge),
             _buildDescription(context, task),
-            SizedBox(height: 24),
+            SizedBox(height: StyleGuide.spacingLarge),
             _buildAssignees(context, task),
-            SizedBox(height: 24),
+            SizedBox(height: StyleGuide.spacingLarge),
             if (permissions.contains('update_task'))
               _buildAttachments(context, ref, task),
           ],
@@ -74,8 +75,10 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Widget _buildTaskHeader(BuildContext context, Task task) {
     return Card(
+      elevation: StyleGuide.cardElevation,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -83,11 +86,11 @@ class TaskDetailScreen extends ConsumerWidget {
               task.name,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
-            SizedBox(height: 8),
+            SizedBox(height: StyleGuide.spacingSmall),
             Row(
               children: [
                 _buildStatusChip(task.status),
-                SizedBox(width: 8),
+                SizedBox(width: StyleGuide.spacingSmall),
                 _buildPriorityChip(task.priority),
               ],
             ),
@@ -99,14 +102,16 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Widget _buildTaskInfo(BuildContext context, Task task) {
     return Card(
+      elevation: StyleGuide.cardElevation,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow(context, 'Deadline', DateFormat('MMM d, y').format(task.deadline)),
-            SizedBox(height: 8),
-            _buildInfoRow(context, 'Created', DateFormat('MMM d, y').format(task.deadline.subtract(Duration(days: 7)))), // Assuming creation date
+            SizedBox(height: StyleGuide.spacingSmall),
+            _buildInfoRow(context, 'Created', DateFormat('MMM d, y').format(task.deadline.subtract(Duration(days: 7)))),
           ],
         ),
       ),
@@ -160,13 +165,15 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Widget _buildDescription(BuildContext context, Task task) {
     return Card(
+      elevation: StyleGuide.cardElevation,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Description', style: Theme.of(context).textTheme.titleLarge),
-            SizedBox(height: 8),
+            SizedBox(height: StyleGuide.spacingSmall),
             Text(task.description),
           ],
         ),
@@ -176,16 +183,18 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Widget _buildAssignees(BuildContext context, Task task) {
     return Card(
+      elevation: StyleGuide.cardElevation,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Assigned To', style: Theme.of(context).textTheme.titleLarge),
-            SizedBox(height: 8),
+            SizedBox(height: StyleGuide.spacingSmall),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: StyleGuide.spacingSmall,
+              runSpacing: StyleGuide.spacingSmall,
               children: task.assignedTo.map((assignee) => Chip(label: Text(assignee))).toList(),
             ),
           ],
@@ -196,8 +205,10 @@ class TaskDetailScreen extends ConsumerWidget {
 
   Widget _buildAttachments(BuildContext context, WidgetRef ref, Task task) {
     return Card(
+      elevation: StyleGuide.cardElevation,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -212,7 +223,7 @@ class TaskDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: StyleGuide.spacingSmall),
             task.attachments.isEmpty
                 ? Text('No attachments')
                 : Column(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:taskfy/config/style_guide.dart';
 import 'package:go_router/go_router.dart';
-import 'package:taskfy/models/user.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
 
@@ -25,43 +25,49 @@ class AppLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: Row(
-        children: [
-          _buildSidebar(context),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildAppBar(context),
-                Expanded(
-                  child: Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(context),
-                          const SizedBox(height: 24),
-                          child,
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth > StyleGuide.breakpointTablet;
+        return Scaffold(
+          drawer: isWideScreen ? null : _buildSidebar(context),
+          body: Row(
+            children: [
+              if (isWideScreen) _buildSidebar(context),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildAppBar(context, isWideScreen),
+                    Expanded(
+                      child: Container(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.all(isWideScreen ? StyleGuide.paddingLarge : StyleGuide.paddingMedium),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHeader(context),
+                              SizedBox(height: isWideScreen ? 24 : 16),
+                              child,
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, bool isWideScreen) {
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isWideScreen ? 24.0 : 16.0),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(
@@ -72,9 +78,12 @@ class AppLayout extends ConsumerWidget {
       ),
       child: Row(
         children: [
+          if (!isWideScreen)
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           const Spacer(),
-          if (actions != null) ...actions!,
-          const SizedBox(width: 16),
           _buildUserMenu(context),
         ],
       ),
@@ -85,17 +94,31 @@ class AppLayout extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          pageTitle,
-          style: Theme.of(context).textTheme.headlineLarge,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  pageTitle,
+                  style: Theme.of(context).textTheme.headlineLarge,
+                ),
+                if (subtitle != null) ...[                  
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle!,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+              ],
+            ),
+            if (actions != null)
+              Row(
+                children: actions!,
+              ),
+          ],
         ),
-        if (subtitle != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            subtitle!,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
       ],
     );
   }

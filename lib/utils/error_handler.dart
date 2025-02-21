@@ -6,7 +6,7 @@ final log = Logger('TaskManager');
 void setupLogging() {
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
+    log.log(record.level, '${record.time}: ${record.message}');
   });
 }
 

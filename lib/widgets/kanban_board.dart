@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:taskfy/config/theme_config.dart';
 
 class KanbanBoard<T> extends StatelessWidget {
   final List<T> items;

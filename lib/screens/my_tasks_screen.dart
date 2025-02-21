@@ -14,14 +14,15 @@ class MyTasksScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final tasksAsyncValue = ref.watch(taskListStreamProvider(user?.email.trim().toLowerCase()));
+    final userEmail = user?.email.trim().toLowerCase();
+    final tasksAsyncValue = ref.watch(taskListStreamProvider(userEmail));
 
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'My Tasks',
       child: tasksAsyncValue.when(
         data: (tasks) {
-          final userTasks = tasks.where((task) => isUserAssigned(task, user?.email)).toList();
+          final userTasks = tasks.where((task) => isUserAssigned(task, userEmail)).toList();
           final todayTasks = userTasks.where((task) => isToday(task.deadline)).toList();
           final upcomingTasks = userTasks.where((task) => isFuture(task.deadline)).toList();
           final pastDueTasks = userTasks.where((task) => isPastDue(task.deadline)).toList();

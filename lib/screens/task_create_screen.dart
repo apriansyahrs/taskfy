@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:taskfy/models/task.dart';
 import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:taskfy/config/style_guide.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/providers/user_availability_provider.dart';
@@ -54,7 +55,7 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
       ],
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(StyleGuide.paddingMedium),
           child: Form(
             key: _formKey,
             child: Column(
@@ -62,9 +63,8 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
+                  decoration: StyleGuide.inputDecoration(
                     labelText: 'Task Name',
-                    border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -73,21 +73,19 @@ class _TaskCreateScreenState extends ConsumerState<TaskCreateScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: StyleGuide.spacingMedium),
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: StyleGuide.inputDecoration(
                     labelText: 'Description',
-                    border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: StyleGuide.spacingMedium),
                 DropdownButtonFormField<String>(
                   value: _priority,
-                  decoration: const InputDecoration(
+                  decoration: StyleGuide.inputDecoration(
                     labelText: 'Priority',
-                    border: OutlineInputBorder(),
                   ),
                   items: ['low', 'medium', 'high'].map((String value) {
                     return DropdownMenuItem<String>(

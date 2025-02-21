@@ -8,6 +8,8 @@ import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/services/auth_service.dart';
 
+import '../widgets/stat_card.dart';
+
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
 
@@ -16,7 +18,6 @@ class UserListScreen extends ConsumerStatefulWidget {
 }
 
 class _UserListScreenState extends ConsumerState<UserListScreen> {
-  // Removed: String _searchQuery = '';
   final _searchController = TextEditingController();
 
   @override
@@ -207,39 +208,11 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     final cardWidth = (constraints.maxWidth - (3 * 16)) / 4;
     return SizedBox(
       width: cardWidth,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Icon(icon, color: color, size: 24),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
+      child: StatCard(
+        title: title,
+        value: value,
+        icon: icon,
+        color: color,
       ),
     );
   }
@@ -247,7 +220,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   void _showResetPasswordDialog(BuildContext context, String email) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Reset Password'),
         content: Text('Are you sure you want to reset the password for $email?'),
         actions: [
@@ -256,23 +229,22 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                await ref.read(authServiceProvider).resetPassword(email);
-                Navigator.of(dialogContext).pop();
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              ref.read(authServiceProvider).resetPassword(email).then((_) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Password reset email sent to $email')),
                   );
                 }
-              } catch (e) {
-                Navigator.of(dialogContext).pop();
+              }).catchError((e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),
                   );
                 }
-              }
+              });
             },
             child: const Text('Reset Password'),
           ),
@@ -284,23 +256,35 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   void _showDeleteUserDialog(BuildContext context, String userId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete User'),
         content: const Text('Are you sure you want to delete this user?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(userNotifierProvider.notifier).deleteUser(userId);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('User deleted successfully')),
-              );
+              Navigator.of(dialogContext).pop();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              ref.read(userNotifierProvider.notifier).deleteUser(userId).then((_) {
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(content: Text('User deleted successfully')),
+                  );
+                }
+              }).catchError((e) {
+                if (mounted) {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Error deleting user: $e')),
+                  );
+                }
+              });
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],

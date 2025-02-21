@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/models/project.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
+import 'package:taskfy/config/style_guide.dart';
 
 final projectStatsProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -45,18 +46,18 @@ class ProjectChart extends ConsumerWidget {
                   children: statusCount.entries.map((entry) {
                     final percentage = (entry.value / projects.length) * 100;
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      padding: EdgeInsets.symmetric(vertical: StyleGuide.paddingSmall),
                       child: Row(
                         children: [
                           Container(
-                            width: 16,
-                            height: 16,
+                            width: StyleGuide.spacingMedium,
+                            height: StyleGuide.spacingMedium,
                             decoration: BoxDecoration(
                               color: _getColorForStatus(entry.key),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(StyleGuide.borderRadiusSmall),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: StyleGuide.spacingSmall),
                           Expanded(
                             flex: 2,
                             child: Text(
@@ -64,18 +65,32 @@ class ProjectChart extends ConsumerWidget {
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
+                          SizedBox(width: StyleGuide.spacingMedium),
                           Expanded(
                             flex: 3,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                value: entry.value / projects.length,
-                                backgroundColor: Colors.grey.withOpacity(0.2),
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _getColorForStatus(entry.key),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(StyleGuide.borderRadiusSmall),
+                                  child: LinearProgressIndicator(
+                                    value: entry.value / projects.length,
+                                    backgroundColor: Colors.grey.withOpacity(0.2),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _getColorForStatus(entry.key),
+                                    ),
+                                    minHeight: 8,
+                                  ),
                                 ),
-                                minHeight: 8,
-                              ),
+                                SizedBox(
+                                  width: 60,
+                                  child: Text(
+                                    ' ${percentage.toStringAsFixed(1)}%',
+                                    textAlign: TextAlign.end,
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           SizedBox(

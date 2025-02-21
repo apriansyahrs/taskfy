@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:postgrest/src/types.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 
@@ -8,8 +7,8 @@ final projectStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final projects = await supabase.from('projects').select();
   final tasks = await supabase.from('tasks').select();
 
-  final projectsData = projects.data as List<dynamic>? ?? [];
-  final tasksData = tasks.data as List<dynamic>? ?? [];
+  final projectsData = projects as List<dynamic>? ?? [];
+  final tasksData = tasks as List<dynamic>? ?? [];
 
   final totalProjects = projectsData.length;
   final completedProjects = projectsData.where((p) => p['status'] == 'completed').length;
@@ -27,17 +26,13 @@ final projectStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   };
 });
 
-extension on PostgrestList {
-  get data => null;
-}
-
 final teamPerformanceProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final supabase = getIt<SupabaseClientWrapper>().client;
   final tasks = await supabase.from('tasks').select();
   final users = await supabase.from('users').select();
 
-  final tasksData = tasks.data as List<dynamic>? ?? [];
-  final usersData = users.data as List<dynamic>? ?? [];
+  final tasksData = tasks as List<dynamic>? ?? [];
+  final usersData = users as List<dynamic>? ?? [];
 
   final performance = <Map<String, dynamic>>[];
 

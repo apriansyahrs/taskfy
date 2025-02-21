@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/models/project.dart';
-import 'package:taskfy/models/user.dart';
 import 'package:taskfy/widgets/app_layout.dart';
-import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/providers/project_providers.dart';
 import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/config/constants.dart';
+import 'package:taskfy/config/style_guide.dart';
 import 'package:taskfy/widgets/error_widget.dart';
+
+import '../widgets/stat_card.dart';
 
 /// Screen for displaying and managing the list of projects.
 class ProjectListScreen extends ConsumerStatefulWidget {
@@ -45,7 +46,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatCards(projectsAsyncValue),
-          const SizedBox(height: 32),
+          SizedBox(height: StyleGuide.spacingLarge),
           _buildProjectList(context, projectsAsyncValue, permissions),
         ],
       ),
@@ -60,29 +61,10 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
     );
   }
 
-  Widget _buildKanbanView(AsyncValue<List<Project>> projectsAsyncValue, Set<String> permissions, User? currentUser) {
-    return projectsAsyncValue.when(
-      data: (projects) => KanbanBoard<Project>(
-        items: projects,
-        getTitle: (project) => project.name,
-        getStatus: (project) => project.status,
-        onStatusChange: (project, newStatus) {
-          if (permissions.contains(AppConstants.permissionUpdateProjectStatus) && project.teamMembers.any((email) => email.trim().toLowerCase() == currentUser?.email?.trim().toLowerCase())) {
-            ref.read(projectNotifierProvider.notifier).updateProject(project.copyWith(status: newStatus));
-          }
-        },
-        statuses: AppConstants.projectStatuses,
-        canEdit: (project) => permissions.contains(AppConstants.permissionUpdateProjectStatus) && project.teamMembers.contains(currentUser?.email),
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => CustomErrorWidget(message: err.toString()),
-    );
-  }
-
   Widget _buildProjectList(BuildContext context, AsyncValue<List<Project>> projectsAsyncValue, Set<String> permissions) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(StyleGuide.paddingLarge),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -96,12 +78,9 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                 SizedBox(
                   width: 200,
                   child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search projects...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    decoration: StyleGuide.inputDecoration(
+                      labelText: 'Search projects...',
+                      prefixIcon: Icons.search,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -112,7 +91,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: StyleGuide.spacingMedium),
             projectsAsyncValue.when(
               data: (projects) {
                 final filteredProjects = projects.where((project) =>
@@ -144,7 +123,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
 class _StatCards extends StatelessWidget {
   final List<Project> projects;
 
-  const _StatCards({super.key, required this.projects});
+  const _StatCards({required this.projects});
 
   @override
   Widget build(BuildContext context) {
@@ -168,39 +147,11 @@ class _StatCards extends StatelessWidget {
     final cardWidth = (constraints.maxWidth - (3 * 16)) / 4;
     return SizedBox(
       width: cardWidth,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Icon(icon, color: color, size: 24),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
+      child: StatCard(
+        title: title,
+        value: value,
+        icon: icon,
+        color: color,
       ),
     );
   }
@@ -212,7 +163,6 @@ class _ProjectTable extends StatelessWidget {
   final Function(String) onDelete;
 
   const _ProjectTable({
-    super.key,
     required this.projects,
     required this.permissions,
     required this.onDelete,
@@ -265,10 +215,13 @@ class _ProjectTable extends StatelessWidget {
         ),
         DataCell(
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(
+              horizontal: StyleGuide.paddingSmall,
+              vertical: StyleGuide.paddingSmall / 2,
+            ),
             decoration: BoxDecoration(
               color: _getStatusColor(project.status).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
             ),
             child: Text(
               project.status,

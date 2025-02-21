@@ -24,7 +24,7 @@ final projectListStreamProvider = StreamProvider.family<List<Project>, String?>(
         .select()
         .filter('team_members', 'cs', '{$userEmail}')
         .order('end_date')
-        .then((data) => data.map((json) => json as Map<String, dynamic>).toList())
+        .then((data) => data.map((json) => json).toList())
         .asStream();
     }
   } else {

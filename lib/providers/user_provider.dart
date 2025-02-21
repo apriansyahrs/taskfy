@@ -65,37 +65,31 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
 
   Future<bool> updateUser(taskfy_user.User user) async {
     try {
-      print('UserNotifier: Attempting to update user role to: ${user.role}');
+      _log.info('Attempting to update user role to: ${user.role}');
 
       // Update only the role in the 'users' table
       final response = await _supabase.from('users').update({
         'role': user.role,
       }).eq('id', user.id);
 
-      print('UserNotifier: Database update response: $response');
+      _log.info('Database update response: $response');
 
       // Fetch the updated user data
       final updatedUserData =
           await _supabase.from('users').select().eq('id', user.id).single();
-      print('UserNotifier: Fetched updated user data: $updatedUserData');
+      _log.info('Fetched updated user data: $updatedUserData');
 
-      if (updatedUserData != null) {
-        final updatedUser = taskfy_user.User.fromJson(updatedUserData);
-        print(
-            'UserNotifier: Verifying updated role - New role from database: ${updatedUser.role}');
-        state = AsyncValue.data(state.value
-                ?.map((u) => u.id == user.id ? updatedUser : u)
-                .toList() ??
-            []);
-        _log.info(
-            'User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
-        return true;
-      } else {
-        throw Exception('Failed to fetch updated user data');
-      }
+      final updatedUser = taskfy_user.User.fromJson(updatedUserData);
+      _log.info('Verifying updated role - New role from database: ${updatedUser.role}');
+      state = AsyncValue.data(state.value
+              ?.map((u) => u.id == user.id ? updatedUser : u)
+              .toList() ??
+          []);
+      _log.info(
+          'User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
+      return true;
     } catch (e) {
       _log.warning('Error updating user role: $e');
-      print('UserNotifier: Error updating user role: $e');
       rethrow;
     }
   }

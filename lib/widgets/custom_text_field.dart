@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taskfy/config/style_guide.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -22,12 +23,9 @@ class CustomTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
+      decoration: StyleGuide.inputDecoration(
         labelText: labelText,
-        prefixIcon: Icon(prefixIcon),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        prefixIcon: prefixIcon,
       ),
       obscureText: obscureText,
       validator: validator,

@@ -22,7 +22,7 @@ final taskListStreamProvider = StreamProvider.family<List<Task>, String?>((ref, 
         .select()
         .filter('assigned_to', 'cs', '{$userEmail}')
         .order('deadline')
-        .then((data) => data.map((json) => json as Map<String, dynamic>).toList())
+        .then((data) => data.map((json) => json).toList())
         .asStream();
     }
   } else {

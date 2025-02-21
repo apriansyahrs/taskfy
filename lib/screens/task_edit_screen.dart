@@ -9,6 +9,7 @@ import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/providers/user_availability_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/config/style_guide.dart';
 
 final usersProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -101,7 +102,7 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
 
           return SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(StyleGuide.paddingMedium),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -109,11 +110,10 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
                   children: [
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
+                      decoration: StyleGuide.inputDecoration(
                         labelText: 'Task Name',
-                        border: OutlineInputBorder(),
                       ),
-                      enabled: canEditAllFields,
+                      readOnly: !canEditAllFields,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a task name';
@@ -121,41 +121,38 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: StyleGuide.spacingMedium),
                     TextFormField(
                       controller: _descriptionController,
-                      decoration: const InputDecoration(
+                      decoration: StyleGuide.inputDecoration(
                         labelText: 'Description',
-                        border: OutlineInputBorder(),
                       ),
-                      enabled: canEditAllFields,
                       maxLines: 3,
+                      readOnly: !canEditAllFields,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: StyleGuide.spacingMedium),
                     DropdownButtonFormField<String>(
                       value: _priority,
-                      decoration: const InputDecoration(
+                      decoration: StyleGuide.inputDecoration(
                         labelText: 'Priority',
-                        border: OutlineInputBorder(),
                       ),
+                      onChanged: canEditAllFields ? (newValue) {
+                        setState(() {
+                          _priority = newValue!;
+                        });
+                      } : null,
                       items: ['low', 'medium', 'high'].map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(value),
                         );
                       }).toList(),
-                      onChanged: canEditAllFields ? (newValue) {
-                        setState(() {
-                          _priority = newValue!;
-                        });
-                      } : null,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _status,
-                      decoration: const InputDecoration(
+                      decoration: StyleGuide.inputDecoration(
                         labelText: 'Status',
-                        border: OutlineInputBorder(),
                       ),
                       items: ['not_started', 'in_progress', 'completed'].map((String value) {
                         return DropdownMenuItem<String>(
