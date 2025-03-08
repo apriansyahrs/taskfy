@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:taskfy/models/task.dart';
-import 'package:taskfy/providers/task_providers.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/services/service_locator.dart';
@@ -10,6 +8,8 @@ import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/providers/user_availability_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/models/routine.dart';
+import 'package:taskfy/providers/routine_providers.dart';
 
 final usersProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -18,70 +18,40 @@ final usersProvider = StreamProvider((ref) {
       .map((data) => data.map((json) => json['email'] as String).toList());
 });
 
-class TaskEditScreen extends ConsumerStatefulWidget {
-  final String taskId;
+class RoutineEditScreen extends ConsumerStatefulWidget {
+  final String routineId;
 
-  const TaskEditScreen({super.key, required this.taskId});
+  const RoutineEditScreen({super.key, required this.routineId});
 
   @override
-  ConsumerState<TaskEditScreen> createState() => _TaskEditScreenState();
+  ConsumerState<RoutineEditScreen> createState() => _RoutineEditScreenState();
 }
 
-class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
+class _RoutineEditScreenState extends ConsumerState<RoutineEditScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _priority = 'medium';
   final Set<String> _assignedTo = {};
   DateTime _deadline = DateTime.now().add(const Duration(days: 1));
   String _status = 'not_started';
 
-  bool _canEditAllFields() {
-    final permissions = ref.read(permissionProvider);
-    return permissions.contains('edit_task');
-  }
-
   @override
   void dispose() {
-    _nameController.dispose();
+    _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
-  Widget _buildAssigneeChips(List<String> users) {
-    return Wrap(
-      spacing: 8,
-      children: users.map((user) {
-        final isAvailable = ref.watch(userAvailabilityProvider(UserAvailabilityParams(user, _deadline)));
-        final isAssigned = _assignedTo.contains(user);
-        return FilterChip(
-          label: Text(user),
-          selected: isAssigned,
-          onSelected: (isAvailable || isAssigned) ? (selected) {
-            setState(() {
-              if (selected && _assignedTo.length < 3) {
-                _assignedTo.add(user);
-              } else {
-                _assignedTo.remove(user);
-              }
-            });
-          } : null,
-          backgroundColor: (isAvailable || isAssigned) ? null : Colors.grey,
-        );
-      }).toList(),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
-    final taskAsyncValue = ref.watch(taskProvider(widget.taskId));
+    final routineAsyncValue = ref.watch(routineProvider(widget.routineId));
     final usersAsyncValue = ref.watch(usersProvider);
     final canEditAllFields = _canEditAllFields();
 
     return AppLayout(
       title: 'Task Manager',
-      pageTitle: 'Edit Task',
+      pageTitle: 'Edit Routine',
       actions: [
         ElevatedButton.icon(
           icon: const Icon(Icons.save),
@@ -89,15 +59,15 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
           onPressed: _submitForm,
         ),
       ],
-      child: taskAsyncValue.when(
-        data: (task) {
-          if (task != null) {
-            _nameController.text = task.name;
-            _descriptionController.text = task.description;
-            _priority = task.priority;
-            _assignedTo.addAll(task.assignedTo);
-            _deadline = task.deadline;
-            _status = task.status;
+      child: routineAsyncValue.when(
+        data: (routine) {
+          if (routine != null) {
+            _titleController.text = routine.title;
+            _descriptionController.text = routine.description;
+            _priority = routine.priority;
+            _assignedTo.addAll(routine.assignees);
+            _deadline = routine.dueDate;
+            _status = routine.status;
           }
 
           return SingleChildScrollView(
@@ -109,14 +79,15 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextFormField(
-                      controller: _nameController,
+                      controller: _titleController,
                       decoration: StyleGuide.inputDecoration(
-                        labelText: 'Task Name',
+                        labelText: 'Title',
+                        hintText: 'Enter routine title',
                       ),
                       readOnly: !canEditAllFields,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a task name';
+                          return 'Please enter a routine title';
                         }
                         return null;
                       },
@@ -219,43 +190,75 @@ class _TaskEditScreenState extends ConsumerState<TaskEditScreen> {
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final canEditAllFields = _canEditAllFields();
-      final currentTask = ref.read(taskProvider(widget.taskId)).value;
+      final currentRoutine = ref.read(routineProvider(widget.routineId)).value;
 
-      if (currentTask == null) {
+      if (currentRoutine == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: Task not found')),
+          const SnackBar(content: Text('Error: Routine not found')),
         );
         return;
       }
 
-      final updatedTask = canEditAllFields
-          ? Task(
-              id: widget.taskId,
-              name: _nameController.text,
+      final updatedRoutine = canEditAllFields
+          ? Routine(
+              id: widget.routineId,
+              title: _titleController.text,
               description: _descriptionController.text,
               status: _status,
               priority: _priority,
-              assignedTo: _assignedTo.toList(),
-              deadline: _deadline,
+              assignees: _assignedTo.toList(),
+              dueDate: _deadline,
+              createdBy: currentRoutine.createdBy,
+              updatedBy: currentRoutine.createdBy,
+              createdAt: currentRoutine.createdAt,
+              updatedAt: DateTime.now(),
             )
-          : currentTask.copyWith(status: _status);
+          : currentRoutine.copyWith(status: _status);
 
       try {
-        await ref.read(taskNotifierProvider.notifier).updateTask(updatedTask);
+        await ref.read(routineNotifierProvider.notifier).updateRoutine(updatedRoutine);
         if (mounted) {
-          context.go('/tasks');
+          context.go('/routines');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Task updated successfully')),
+            const SnackBar(content: Text('Routine updated successfully')),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating task: $e')),
+            SnackBar(content: Text('Error updating routine: $e')),
           );
         }
       }
     }
+  }
+
+  bool _canEditAllFields() {
+    final permissions = ref.read(permissionProvider);
+    return permissions.contains('update_routine');
+  }
+
+  Widget _buildAssigneeChips(List<String> users) {
+    return Wrap(
+      spacing: 8,
+      children: users.map((email) {
+        final isAvailable = ref.watch(userAvailabilityProvider(UserAvailabilityParams(email, _deadline)));
+        return FilterChip(
+          label: Text(email.trim()),
+          selected: _assignedTo.contains(email),
+          onSelected: isAvailable ? (selected) {
+            setState(() {
+              if (selected && _assignedTo.length < 3) {
+                _assignedTo.add(email);
+              } else {
+                _assignedTo.remove(email);
+              }
+            });
+          } : null,
+          backgroundColor: isAvailable ? null : Colors.grey,
+        );
+      }).toList(),
+    );
   }
 }
 

@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:taskfy/models/task.dart';
 import 'package:taskfy/models/project.dart';
+import 'package:taskfy/models/routine.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 
-final taskListProvider = StreamProvider<List<Task>>((ref) {
+final routineListProvider = StreamProvider<List<Routine>>((ref) {
   return getIt<SupabaseClientWrapper>().client
-      .from('tasks')
+      .from('routines')
       .stream(primaryKey: ['id'])
-      .map((data) => data.map((json) => Task.fromJson(json)).toList());
+      .map((data) => data.map((json) => Routine.fromJson(json)).toList());
 });
 
 final projectListProvider = StreamProvider<List<Project>>((ref) {

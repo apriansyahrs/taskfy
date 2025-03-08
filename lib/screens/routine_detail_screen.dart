@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:taskfy/models/task.dart';
+import 'package:taskfy/models/routine.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:intl/intl.dart';
@@ -11,35 +11,35 @@ import 'package:path/path.dart' as path;
 import 'package:mime/mime.dart';
 import 'package:taskfy/config/style_guide.dart';
 
-final taskProvider = StreamProvider.family<Task?, String>((ref, taskId) {
+final routineProvider = StreamProvider.family<Routine?, String>((ref, routineId) {
   return getIt<SupabaseClientWrapper>().client
-      .from('tasks')
+      .from('routines')
       .stream(primaryKey: ['id'])
-      .eq('id', taskId)
-      .map((data) => data.isNotEmpty ? Task.fromJson(data.first) : null);
+      .eq('id', routineId)
+      .map((data) => data.isNotEmpty ? Routine.fromJson(data.first) : null);
 });
 
-final permissionProvider = Provider<Set<String>>((ref) => {'update_task'}); //Example provider, replace with your actual implementation
+final permissionProvider = Provider<Set<String>>((ref) => {'update_routine'}); //Example provider, replace with your actual implementation
 
-class TaskDetailScreen extends ConsumerWidget {
-  final String taskId;
+class RoutineDetailScreen extends ConsumerWidget {
+  final String routineId;
 
-  const TaskDetailScreen({super.key, required this.taskId});
+  const RoutineDetailScreen({super.key, required this.routineId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final taskAsyncValue = ref.watch(taskProvider(taskId));
+    final routineAsyncValue = ref.watch(routineProvider(routineId));
     final permissions = ref.watch(permissionProvider);
 
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'Task Details',
-      child: taskAsyncValue.when(
-        data: (task) {
-          if (task == null) {
-            return const Center(child: Text('Task not found'));
+      title: 'Routine Manager',
+      pageTitle: 'Routine Details',
+      child: routineAsyncValue.when(
+        data: (routine) {
+          if (routine == null) {
+            return const Center(child: Text('Routine not found'));
           }
-          return _buildTaskDetails(context, ref, task, permissions);
+          return _buildRoutineDetails(context, ref, routine, permissions);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -47,33 +47,33 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaskDetails(BuildContext context, WidgetRef ref, Task task, Set<String> permissions) {
+  Widget _buildRoutineDetails(BuildContext context, WidgetRef ref, Routine routine, Set<String> permissions) {
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(StyleGuide.paddingMedium),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTaskHeader(context, task),
+            _buildRoutineHeader(context, routine),
             SizedBox(height: StyleGuide.spacingLarge),
-            _buildTaskInfo(context, task),
+            _buildRoutineInfo(context, routine),
             SizedBox(height: StyleGuide.spacingLarge),
-            if (permissions.contains('update_task'))
-              _buildStatusUpdate(context, ref, task),
+            if (permissions.contains('update_routine'))
+              _buildStatusUpdate(context, ref, routine),
             SizedBox(height: StyleGuide.spacingLarge),
-            _buildDescription(context, task),
+            _buildDescription(context, routine),
             SizedBox(height: StyleGuide.spacingLarge),
-            _buildAssignees(context, task),
+            _buildAssignees(context, routine),
             SizedBox(height: StyleGuide.spacingLarge),
-            if (permissions.contains('update_task'))
-              _buildAttachments(context, ref, task),
+            if (permissions.contains('update_routine'))
+              _buildAttachments(context, ref, routine),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTaskHeader(BuildContext context, Task task) {
+  Widget _buildRoutineHeader(BuildContext context, Routine routine) {
     return Card(
       elevation: StyleGuide.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
@@ -83,15 +83,15 @@ class TaskDetailScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              task.name,
+              routine.title,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             SizedBox(height: StyleGuide.spacingSmall),
             Row(
               children: [
-                _buildStatusChip(task.status),
+                _buildStatusChip(routine.status),
                 SizedBox(width: StyleGuide.spacingSmall),
-                _buildPriorityChip(task.priority),
+                _buildPriorityChip(routine.priority),
               ],
             ),
           ],
@@ -100,7 +100,7 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaskInfo(BuildContext context, Task task) {
+  Widget _buildRoutineInfo(BuildContext context, Routine routine) {
     return Card(
       elevation: StyleGuide.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
@@ -109,9 +109,9 @@ class TaskDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow(context, 'Deadline', DateFormat('MMM d, y').format(task.deadline)),
+            _buildInfoRow(context, 'Due Date', DateFormat('MMM d, y').format(routine.dueDate)),
             SizedBox(height: StyleGuide.spacingSmall),
-            _buildInfoRow(context, 'Created', DateFormat('MMM d, y').format(task.deadline.subtract(Duration(days: 7)))),
+            _buildInfoRow(context, 'Created', DateFormat('MMM d, y').format(routine.createdAt)),
           ],
         ),
       ),
@@ -128,7 +128,7 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusUpdate(BuildContext context, WidgetRef ref, Task task) {
+  Widget _buildStatusUpdate(BuildContext context, WidgetRef ref, Routine routine) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -140,9 +140,9 @@ class TaskDetailScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatusButton(context, ref, task, 'Not Started'),
-                _buildStatusButton(context, ref, task, 'In Progress'),
-                _buildStatusButton(context, ref, task, 'Completed'),
+                _buildStatusButton(context, ref, routine, 'Not Started'),
+                _buildStatusButton(context, ref, routine, 'In Progress'),
+                _buildStatusButton(context, ref, routine, 'Completed'),
               ],
             ),
           ],
@@ -151,10 +151,10 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusButton(BuildContext context, WidgetRef ref, Task task, String status) {
-    final isCurrentStatus = task.status.toLowerCase() == status.toLowerCase();
+  Widget _buildStatusButton(BuildContext context, WidgetRef ref, Routine routine, String status) {
+    final isCurrentStatus = routine.status.toLowerCase() == status.toLowerCase();
     return ElevatedButton(
-      onPressed: isCurrentStatus ? null : () => _updateStatus(context, ref, task, status),
+      onPressed: isCurrentStatus ? null : () => _updateStatus(context, ref, routine, status),
       style: ElevatedButton.styleFrom(
         backgroundColor: isCurrentStatus ? Theme.of(context).primaryColor : null,
         foregroundColor: isCurrentStatus ? Colors.white : null,
@@ -163,7 +163,7 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDescription(BuildContext context, Task task) {
+  Widget _buildDescription(BuildContext context, Routine routine) {
     return Card(
       elevation: StyleGuide.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
@@ -174,14 +174,14 @@ class TaskDetailScreen extends ConsumerWidget {
           children: [
             Text('Description', style: Theme.of(context).textTheme.titleLarge),
             SizedBox(height: StyleGuide.spacingSmall),
-            Text(task.description),
+            Text(routine.description),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAssignees(BuildContext context, Task task) {
+  Widget _buildAssignees(BuildContext context, Routine routine) {
     return Card(
       elevation: StyleGuide.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
@@ -195,7 +195,7 @@ class TaskDetailScreen extends ConsumerWidget {
             Wrap(
               spacing: StyleGuide.spacingSmall,
               runSpacing: StyleGuide.spacingSmall,
-              children: task.assignedTo.map((assignee) => Chip(label: Text(assignee))).toList(),
+              children: routine.assignees.map((assignee) => Chip(label: Text(assignee))).toList(),
             ),
           ],
         ),
@@ -203,7 +203,7 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAttachments(BuildContext context, WidgetRef ref, Task task) {
+  Widget _buildAttachments(BuildContext context, WidgetRef ref, Routine routine) {
     return Card(
       elevation: StyleGuide.cardElevation,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
@@ -219,21 +219,21 @@ class TaskDetailScreen extends ConsumerWidget {
                 ElevatedButton.icon(
                   icon: Icon(Icons.upload_file),
                   label: Text('Upload'),
-                  onPressed: () => _uploadAttachment(context, ref, task),
+                  onPressed: () => _uploadAttachment(context, ref, routine),
                 ),
               ],
             ),
             SizedBox(height: StyleGuide.spacingSmall),
-            task.attachments.isEmpty
+            routine.attachments.isEmpty
                 ? Text('No attachments')
                 : Column(
-                    children: task.attachments
+                    children: routine.attachments
                         .map((attachment) => ListTile(
                               leading: Icon(Icons.attachment),
                               title: Text(path.basename(attachment)),
                               trailing: IconButton(
                                 icon: Icon(Icons.delete),
-                                onPressed: () => _deleteAttachment(context, ref, task, attachment),
+                                onPressed: () => _deleteAttachment(context, ref, routine, attachment),
                               ),
                               onTap: () => _viewAttachment(context, attachment),
                             ))
@@ -295,34 +295,34 @@ class TaskDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _updateStatus(BuildContext context, WidgetRef ref, Task task, String newStatus) async {
-    if (task.id == null) {
+  void _updateStatus(BuildContext context, WidgetRef ref, Routine routine, String newStatus) async {
+    if (routine.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: Task ID is null')),
+        SnackBar(content: Text('Error: Routine ID is null')),
       );
       return;
     }
 
     try {
       await getIt<SupabaseClientWrapper>().client
-          .from('tasks')
+          .from('routines')
           .update({'status': newStatus.toLowerCase().replaceAll(' ', '_')})
-          .eq('id', task.id as Object);
+          .eq('id', routine.id as Object);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Task status updated successfully')),
+          SnackBar(content: Text('Routine status updated successfully')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task status: $e')),
+          SnackBar(content: Text('Error updating routine status: $e')),
         );
       }
     }
   }
 
-  Future<void> _uploadAttachment(BuildContext context, WidgetRef ref, Task task) async {
+  Future<void> _uploadAttachment(BuildContext context, WidgetRef ref, Routine routine) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -332,7 +332,7 @@ class TaskDetailScreen extends ConsumerWidget {
       if (result != null) {
         PlatformFile file = result.files.first;
         String fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
-        String filePath = 'task_attachments/${task.id}/$fileName';
+        String filePath = 'routine_attachments/${routine.id}/$fileName';
 
         // Determine the MIME type
         String? mimeType = lookupMimeType(file.name);
@@ -350,9 +350,9 @@ class TaskDetailScreen extends ConsumerWidget {
         // Get the public URL
         String publicUrl = getIt<SupabaseClientWrapper>().client.storage.from('attachments').getPublicUrl(filePath);
 
-        // Update the task's attachments
-        List<String> updatedAttachments = [...task.attachments, publicUrl];
-        await _updateTaskAttachments(task.id!, updatedAttachments);
+        // Update the routine's attachments
+        List<String> updatedAttachments = [...routine.attachments, publicUrl];
+        await _updateRoutineAttachments(routine.id!, updatedAttachments);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -369,13 +369,13 @@ class TaskDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _deleteAttachment(BuildContext context, WidgetRef ref, Task task, String attachmentUrl) async {
+  Future<void> _deleteAttachment(BuildContext context, WidgetRef ref, Routine routine, String attachmentUrl) async {
     try {
       String filePath = attachmentUrl.split('attachments/')[1];
       await getIt<SupabaseClientWrapper>().client.storage.from('attachments').remove([filePath]);
 
-      List<String> updatedAttachments = task.attachments.where((a) => a != attachmentUrl).toList();
-      await _updateTaskAttachments(task.id!, updatedAttachments);
+      List<String> updatedAttachments = (routine.attachments).where((a) => a != attachmentUrl).map((e) => e.toString()).toList();
+      await _updateRoutineAttachments(routine.id!, updatedAttachments);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -391,11 +391,11 @@ class TaskDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _updateTaskAttachments(String taskId, List<String> attachments) async {
+  Future<void> _updateRoutineAttachments(String routineId, List<String> attachments) async {
     await getIt<SupabaseClientWrapper>().client
-        .from('tasks')
+        .from('routines')
         .update({'attachments': attachments})
-        .eq('id', taskId);
+        .eq('id', routineId);
   }
 
   void _viewAttachment(BuildContext context, String attachmentUrl) {

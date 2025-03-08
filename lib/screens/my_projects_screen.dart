@@ -7,23 +7,38 @@ import 'package:taskfy/widgets/kanban_board.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/config/theme_config.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('MyProjectsScreen');
 
 class MyProjectsScreen extends ConsumerWidget {
   const MyProjectsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider);
-    final projectsAsyncValue = ref.watch(projectListStreamProvider(user?.email.trim().toLowerCase()));
+    _log.info('Building MyProjectsScreen');
+    final userState = ref.watch(authProvider);
+    final userEmail = userState.value?.email.trim().toLowerCase();
+    _log.info('Current user email: $userEmail, role: ${userState.value?.role}');
+    
+    final projectsAsyncValue = ref.watch(projectListStreamProvider(userEmail));
+    
+    // Log any errors from async values
+    if (projectsAsyncValue.hasError) {
+      _log.severe('Error loading projects: ${projectsAsyncValue.error}', projectsAsyncValue.error, StackTrace.current);
+    }
 
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'My Projects',
+      title: AppLocalizations.of(context)!.appTitle,
+      pageTitle: AppLocalizations.of(context)!.myProjectsTitle,
       child: projectsAsyncValue.when(
         data: (projects) {
-          final userProjects = projects.where((project) => isUserTeamMember(project, user?.email)).toList();
-          final activeProjects = userProjects.where((project) => project.status != 'completed').toList();
-          final completedProjects = userProjects.where((project) => project.status == 'completed').toList();
+          _log.info('Loaded ${projects.length} projects');
+          // The projects are already filtered by the provider based on user email
+          _log.info('User has ${projects.length} assigned projects');
+          final activeProjects = projects.where((project) => project.status != 'completed').toList();
+          final completedProjects = projects.where((project) => project.status == 'completed').toList();
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -33,7 +48,7 @@ class MyProjectsScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionHeader(context, "Active Projects", Icons.work),
+                      _buildSectionHeader(context, AppLocalizations.of(context)!.projectsTitle, Icons.work),
                       SizedBox(
                         height: 400, // Fixed height for Kanban board
                         child: KanbanBoard<Project>(
@@ -51,7 +66,7 @@ class MyProjectsScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildSectionHeader(context, "Completed Projects", Icons.check_circle),
+                      _buildSectionHeader(context, AppLocalizations.of(context)!.completionLabel, Icons.check_circle),
                       SizedBox(
                         height: 300, // Fixed height for completed projects list
                         child: _buildCompletedProjectsList(context, completedProjects, ref),
@@ -96,7 +111,7 @@ class MyProjectsScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Description: ${project.description}'),
+        Text('${AppLocalizations.of(context)!.descriptionLabel}: ${project.description}'),
         const SizedBox(height: 8),
         _buildPriorityChip(context, project.priority),
         const SizedBox(height: 8),

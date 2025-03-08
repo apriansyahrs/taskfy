@@ -6,9 +6,23 @@ import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/user_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/auth_provider.dart';
-import 'package:taskfy/services/auth_service.dart';
+import 'package:taskfy/services/auth_service.dart' as auth_service;
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:taskfy/services/service_locator.dart';
+import 'package:taskfy/services/supabase_client.dart';
+import 'package:taskfy/widgets/stat_card.dart';
 
-import '../widgets/stat_card.dart';
+final userListStreamProvider = StreamProvider<List<taskfy_user.User>>((ref) {
+  return getIt<SupabaseClientWrapper>().client
+      .from('users')
+      .stream(primaryKey: ['id'])
+      .map((data) => data.map((json) => taskfy_user.User.fromJson(json)).toList());
+});
+
+final isAdmin = Provider<bool>((ref) {
+  final userState = ref.watch(authProvider);
+  return userState.value?.role == 'admin';
+});
 
 class UserListScreen extends ConsumerStatefulWidget {
   const UserListScreen({super.key});
@@ -28,18 +42,20 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final usersAsyncValue = ref.watch(usersStreamProvider);
+    ref.watch(authProvider);
+    final usersAsyncValue = ref.watch(userListStreamProvider);
     final permissions = ref.watch(permissionProvider);
-    final isAdmin = ref.watch(authProvider)?.role == 'admin';
+    final l10n = AppLocalizations.of(context)!;
+    final isUserAdmin = ref.watch(isAdmin);
 
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'User Management',
+      title: l10n.appTitle,
+      pageTitle: l10n.userManagementTitle,
       actions: [
-        if (isAdmin || permissions.contains('create_user'))
+        if (isUserAdmin || permissions.contains('create_user'))
           ElevatedButton.icon(
             icon: const Icon(Icons.person_add),
-            label: const Text('Add User'),
+            label: Text(l10n.addUserButton),
             onPressed: () => context.go('/users/create'),
           ),
       ],
@@ -55,6 +71,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   }
 
   Widget _buildUserStats(AsyncValue<List<taskfy_user.User>> usersAsyncValue) {
+    final l10n = AppLocalizations.of(context)!;
     return usersAsyncValue.when(
       data: (users) {
         final totalUsers = users.length;
@@ -68,10 +85,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
               spacing: 16,
               runSpacing: 16,
               children: [
-                _buildStatCard('Total Users', totalUsers.toString(), Icons.people, Colors.blue, constraints),
-                _buildStatCard('Admins', adminCount.toString(), Icons.admin_panel_settings, Colors.red, constraints),
-                _buildStatCard('Managers', managerCount.toString(), Icons.manage_accounts, Colors.orange, constraints),
-                _buildStatCard('Employees', employeeCount.toString(), Icons.work, Colors.green, constraints),
+                _buildStatCard(l10n.totalUsersTitle, totalUsers.toString(), Icons.people, Colors.blue, constraints),
+                _buildStatCard(l10n.adminsTitle, adminCount.toString(), Icons.admin_panel_settings, Colors.red, constraints),
+                _buildStatCard(l10n.managersTitle, managerCount.toString(), Icons.manage_accounts, Colors.orange, constraints),
+                _buildStatCard(l10n.employeesTitle, employeeCount.toString(), Icons.work, Colors.green, constraints),
               ],
             );
           },
@@ -83,6 +100,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   }
 
   Widget _buildUserList(BuildContext context, AsyncValue<List<taskfy_user.User>> usersAsyncValue, Set<String> permissions) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -92,7 +110,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             Row(
               children: [
                 Text(
-                  'User List',
+                  l10n.userListTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const Spacer(),
@@ -101,7 +119,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search users...',
+                      hintText: l10n.searchUsersPlaceholder,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -126,7 +144,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                 final filteredUsers = users.where((user) =>
                     user.email.toLowerCase().contains(_searchController.text.toLowerCase()) ||
                     user.role.toLowerCase().contains(_searchController.text.toLowerCase())).toList();
-                return _buildUserTable(filteredUsers, permissions);
+                return _buildUserTable(filteredUsers, permissions, l10n);
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Error: $err')),
@@ -137,7 +155,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     );
   }
 
-  Widget _buildUserTable(List<taskfy_user.User> users, Set<String> permissions) {
+  Widget _buildUserTable(List<taskfy_user.User> users, Set<String> permissions, AppLocalizations l10n) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -146,10 +164,10 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             constraints: BoxConstraints(minWidth: constraints.maxWidth),
             child: DataTable(
               columnSpacing: 16,
-              columns: const [
-                DataColumn(label: Text('User', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+              columns: [
+                DataColumn(label: Text(l10n.userLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text(l10n.roleLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text(l10n.actionsLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
               ],
               rows: users.map((user) => _buildUserRow(context, user, permissions)).toList(),
             ),
@@ -160,7 +178,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   }
 
   DataRow _buildUserRow(BuildContext context, taskfy_user.User user, Set<String> permissions) {
-    final isAdmin = ref.read(authProvider)?.role == 'admin';
+    final isAdmin = ref.read(authProvider).value?.role == 'admin';
 
     return DataRow(
       cells: [
@@ -232,7 +250,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             onPressed: () {
               Navigator.of(dialogContext).pop();
               final scaffoldMessenger = ScaffoldMessenger.of(context);
-              ref.read(authServiceProvider).resetPassword(email).then((_) {
+              ref.read(auth_service.authServiceProvider).resetPassword(email).then((_) {
                 if (mounted) {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text('Password reset email sent to $email')),

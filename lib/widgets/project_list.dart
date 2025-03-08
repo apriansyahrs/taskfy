@@ -1,25 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:taskfy/models/project.dart';
-import 'package:taskfy/services/service_locator.dart';
-import 'package:taskfy/services/supabase_client.dart';
-
-final projectsProvider = StreamProvider((ref) {
-  return getIt<SupabaseClientWrapper>().client
-      .from('projects')
-      .stream(primaryKey: ['id'])
-      .map((data) => data.map((json) => Project.fromJson(json)).toList());
-});
+import 'package:taskfy/providers/project_providers.dart';
+import 'package:taskfy/providers/auth_provider.dart';
 
 class ProjectList extends ConsumerWidget {
   final int? limit;
 
   const ProjectList({super.key, this.limit});
 
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, String? projectId) {
+    if (projectId == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: const Text('Are you sure you want to delete this project?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              try {
+                await ref.read(projectNotifierProvider.notifier).deleteProject(projectId);
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Project deleted successfully')),
+                );
+              } catch (e) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final projectsAsyncValue = ref.watch(projectsProvider);
+    final authState = ref.watch(authProvider);
+    final user = authState.value;
+    final userEmail = user?.email;
+    final projectsAsyncValue = ref.watch(projectListStreamProvider(userEmail));
+
+    // Check if user has permission to edit/delete projects
+    final bool canEditDelete = user != null && 
+        (user.role == 'admin' || user.role == 'manager' || user.role == 'direksi');
 
     return projectsAsyncValue.when(
       data: (projects) {
@@ -33,7 +70,23 @@ class ProjectList extends ConsumerWidget {
             return ListTile(
               title: Text(project.name),
               subtitle: Text('Status: ${project.status}'),
-              trailing: Text('Completion: ${project.completion.toStringAsFixed(1)}%'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${project.completion.toStringAsFixed(1)}%'),
+                  const SizedBox(width: 8),
+                  if (canEditDelete) IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => context.go('/projects/${project.id}/edit'),
+                    tooltip: 'Edit Project',
+                  ),
+                  if (canEditDelete) IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _showDeleteConfirmation(context, ref, project.id),
+                    tooltip: 'Delete Project',
+                  ),
+                ],
+              ),
               onTap: () => context.go('/projects/${project.id}'),
             );
           },

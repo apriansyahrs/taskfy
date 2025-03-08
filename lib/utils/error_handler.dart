@@ -4,9 +4,11 @@ import 'package:logging/logging.dart';
 final log = Logger('TaskManager');
 
 void setupLogging() {
-  Logger.root.level = Level.ALL;
+  Logger.root.level = Level.WARNING;
   Logger.root.onRecord.listen((record) {
-    log.log(record.level, '${record.time}: ${record.message}');
+    if (record.level >= Level.WARNING) {
+      log.log(record.level, '${record.time}: ${record.message}');
+    }
   });
 }
 

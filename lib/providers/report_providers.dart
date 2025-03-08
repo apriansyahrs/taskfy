@@ -5,7 +5,7 @@ import 'package:taskfy/services/supabase_client.dart';
 final projectStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final supabase = getIt<SupabaseClientWrapper>().client;
   final projects = await supabase.from('projects').select();
-  final tasks = await supabase.from('tasks').select();
+  final tasks = await supabase.from('project_tasks').select();
 
   final projectsData = projects as List<dynamic>? ?? [];
   final tasksData = tasks as List<dynamic>? ?? [];
@@ -28,7 +28,7 @@ final projectStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 
 final teamPerformanceProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final supabase = getIt<SupabaseClientWrapper>().client;
-  final tasks = await supabase.from('tasks').select();
+  final tasks = await supabase.from('project_tasks').select();
   final users = await supabase.from('users').select();
 
   final tasksData = tasks as List<dynamic>? ?? [];

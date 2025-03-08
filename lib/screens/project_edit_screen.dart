@@ -8,6 +8,7 @@ import 'package:taskfy/widgets/app_layout.dart';
 import 'package:intl/intl.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 final usersProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -62,12 +63,12 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
     final canEditAllFields = _canEditAllFields();
 
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'Edit Project',
+      title: AppLocalizations.of(context)!.appTitle,
+      pageTitle: AppLocalizations.of(context)!.editProjectButton,
       actions: [
         ElevatedButton.icon(
           icon: Icon(Icons.save),
-          label: Text('Save Changes'),
+          label: Text(AppLocalizations.of(context)!.saveButton),
           onPressed: _submitForm,
         ),
       ],
@@ -94,7 +95,7 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
                   children: [
                     TextFormField(
                       controller: _nameController,
-                      decoration: InputDecoration(labelText: 'Project Name'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context)!.projectNameLabel),
                       enabled: canEditAllFields,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -246,6 +247,15 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
         return;
       }
 
+      final currentUser = getIt<SupabaseClientWrapper>().client.auth.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: User not authenticated')),
+        );
+        return;
+      }
+
+      final now = DateTime.now();
       final updatedProject = canEditAllFields
           ? Project(
               id: widget.projectId,
@@ -256,9 +266,13 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
               teamMembers: _teamMembers.toList(),
               startDate: _startDate,
               endDate: _endDate,
+              createdBy: currentUser.id,
+              updatedBy: currentUser.id,
+              createdAt: now,
+              updatedAt: now,
               completion: _completion,
             )
-          : currentProject.copyWith(status: _status);
+          : currentProject.copyWith(status: _status, updatedAt: now);
 
       try {
         await ref.read(projectNotifierProvider.notifier).updateProject(updatedProject);

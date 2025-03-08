@@ -10,8 +10,12 @@ import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/config/style_guide.dart';
 import 'package:taskfy/widgets/error_widget.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:logging/logging.dart';
 
 import '../widgets/stat_card.dart';
+
+final _log = Logger('ProjectListScreen');
 
 /// Screen for displaying and managing the list of projects.
 class ProjectListScreen extends ConsumerStatefulWidget {
@@ -22,23 +26,34 @@ class ProjectListScreen extends ConsumerStatefulWidget {
 }
 
 class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
   String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
-    final userEmail = user?.email;
+    _log.info('Building ProjectListScreen');
+    final userState = ref.watch(authProvider);
+    final userEmail = userState.value?.email;
+    _log.info('Current user email: $userEmail, role: ${userState.value?.role}');
+    
     final projectsAsyncValue = ref.watch(projectListStreamProvider(userEmail));
     final permissions = ref.watch(permissionProvider);
+    
+    _log.info('User permissions: $permissions');
+    
+    // Log any errors from async values
+    if (projectsAsyncValue.hasError) {
+      _log.severe('Error loading projects: ${projectsAsyncValue.error}', projectsAsyncValue.error, StackTrace.current);
+    }
 
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'Projects',
+      title: AppLocalizations.of(context)!.appTitle,
+      pageTitle: AppLocalizations.of(context)!.projectsTitle,
       actions: [
         if (permissions.contains(AppConstants.permissionCreateProject))
           ElevatedButton.icon(
             icon: Icon(Icons.add),
-            label: Text('New Project'),
+            label: Text(AppLocalizations.of(context)!.createProjectButton),
             onPressed: () => context.go('${AppConstants.projectsRoute}/create'),
           ),
       ],
@@ -71,7 +86,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
             Row(
               children: [
                 Text(
-                  'Project List',
+                  AppLocalizations.of(context)!.projectListTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 Spacer(),
@@ -79,7 +94,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                   width: 200,
                   child: TextField(
                     decoration: StyleGuide.inputDecoration(
-                      labelText: 'Search projects...',
+                      labelText: AppLocalizations.of(context)!.searchProjectsPlaceholder,
                       prefixIcon: Icons.search,
                     ),
                     onChanged: (value) {
@@ -101,12 +116,12 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                 ).toList();
 
                 return filteredProjects.isEmpty
-                    ? Center(child: Text('No projects found'))
+                    ? Center(child: Text(AppLocalizations.of(context)!.noDataFound))
                     : _ProjectTable(
                         projects: filteredProjects,
                         permissions: permissions,
-                        onDelete: (String projectId) {
-                          ref.read(projectNotifierProvider.notifier).deleteProject(projectId);
+                        onDelete: (String projectId) async {
+                          return await ref.read(projectNotifierProvider.notifier).deleteProject(projectId);
                         },
                       );
               },
@@ -198,19 +213,28 @@ class _ProjectTable extends StatelessWidget {
     return DataRow(
       cells: [
         DataCell(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(project.name),
-              Text(
-                project.description,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
+          Container(
+            constraints: BoxConstraints(maxWidth: 200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  project.name,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-              ),
-            ],
+                Text(
+                  project.description,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ],
+            ),
           ),
         ),
         DataCell(
@@ -267,17 +291,25 @@ class _ProjectTable extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // View button - always visible for all users
+              IconButton(
+                icon: Icon(Icons.visibility),
+                tooltip: 'View Project Details',
+                onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}'),
+              ),
               if (permissions.contains(AppConstants.permissionEditProject))
                 IconButton(
                   icon: Icon(Icons.edit),
+                  tooltip: 'Edit Project',
                   onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}/edit'),
                 ),
               if (permissions.contains(AppConstants.permissionDeleteProject))
                 IconButton(
                   icon: Icon(Icons.delete),
+                  tooltip: 'Delete Project',
                   onPressed: () {
                     if (project.id.isNotEmpty) {
-                      onDelete(project.id);
+                      _showDeleteProjectDialog(context, project.id);
                     }
                   },
                 ),
@@ -308,6 +340,42 @@ class _ProjectTable extends StatelessWidget {
     if (progress >= 50) return Colors.blue;
     if (progress >= 25) return Colors.orange;
     return Colors.red;
+  }
+  
+  void _showDeleteProjectDialog(BuildContext context, String projectId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: const Text('Are you sure you want to delete this project?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              try {
+                await onDelete(projectId);
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Project deleted successfully')),
+                );
+              } catch (e) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

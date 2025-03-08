@@ -4,6 +4,7 @@ import 'package:taskfy/models/project.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/config/style_guide.dart';
+// import 'package:taskfy/providers/project_progress_provider.dart';
 
 final projectStatsProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -30,12 +31,12 @@ class ProjectChart extends ConsumerWidget {
           final Map<String, int> statusCount = {
             'not_started': 0,
             'in_progress': 0,
+            'on_hold': 0,
             'completed': 0,
           };
 
           for (var project in projects) {
-            final status = project.status;
-            statusCount[status] = (statusCount[status] ?? 0) + 1;
+            statusCount[project.status] = (statusCount[project.status] ?? 0) + 1;
           }
 
           return Row(
@@ -82,23 +83,11 @@ class ProjectChart extends ConsumerWidget {
                                     minHeight: 8,
                                   ),
                                 ),
-                                SizedBox(
-                                  width: 60,
-                                  child: Text(
-                                    ' ${percentage.toStringAsFixed(1)}%',
-                                    textAlign: TextAlign.end,
-                                    style: Theme.of(context).textTheme.bodyMedium,
-                                  ),
+                                Text(
+                                  '${percentage.toStringAsFixed(1)}%',
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
-                            ),
-                          ),
-                          SizedBox(
-                            width: 60,
-                            child: Text(
-                              ' ${percentage.toStringAsFixed(1)}%',
-                              textAlign: TextAlign.end,
-                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ),
                         ],
@@ -111,28 +100,26 @@ class ProjectChart extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }
 
   Color _getColorForStatus(String status) {
     switch (status) {
-      case 'completed':
-        return Colors.green;
+      case 'not_started':
+        return Colors.grey;
       case 'in_progress':
         return Colors.blue;
-      case 'not_started':
-        return Colors.red;
+      case 'completed':
+        return Colors.green;
       default:
         return Colors.grey;
     }
   }
 
   String _formatStatus(String status) {
-    return status.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1)
-    ).join(' ');
+    return status.split('_').map((word) => word[0].toUpperCase() + word.substring(1)).join(' ');
   }
 }
 

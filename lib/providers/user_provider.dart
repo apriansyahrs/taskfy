@@ -43,12 +43,22 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
         throw Exception('Failed to create user in Auth');
       }
 
-      final newUser = user.copyWith(id: authResponse.user!.id);
+      // Get default permissions based on role if not provided
+      List<String> permissions = user.permissions.isNotEmpty 
+          ? user.permissions 
+          : _getDefaultPermissions(user.role);
+      
+      final newUser = user.copyWith(
+        id: authResponse.user!.id,
+        permissions: permissions,
+        isActive: true,
+        lastActive: DateTime.now().toIso8601String(),
+      );
 
       await _supabase.from('users').insert(newUser.toJson());
 
       state = AsyncValue.data([...state.value ?? [], newUser]);
-      _log.info('User created successfully: ${newUser.email}');
+      _log.info('User created successfully: ${newUser.email} with role: ${newUser.role}');
     } catch (e) {
       if (e is supabase.AuthException) {
         _log.warning('Auth error creating user: ${e.message}');
@@ -67,9 +77,14 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
     try {
       _log.info('Attempting to update user role to: ${user.role}');
 
-      // Update only the role in the 'users' table
+      // Get default permissions based on new role
+      List<String> permissions = _getDefaultPermissions(user.role);
+      
+      // Update role and permissions in the 'users' table
       final response = await _supabase.from('users').update({
         'role': user.role,
+        'permissions': permissions,
+        'last_active': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
 
       _log.info('Database update response: $response');
@@ -114,6 +129,43 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
       _log.warning('Failed to delete user: $e');
       state = AsyncValue.error(e, StackTrace.current);
       rethrow;
+    }
+  }
+
+  List<String> _getDefaultPermissions(String role) {
+    switch (role) {
+      case 'admin':
+        return [
+          'create_user',
+          'update_user',
+          'delete_user',
+          'manage_roles',
+          'view_reports'
+        ];
+      case 'manager':
+        return [
+          'create_project',
+          'update_project',
+          'delete_project',
+          'create_routine',
+          'update_routine',
+          'delete_routine',
+          'view_reports',
+          'monitor_progress'
+        ];
+      case 'pegawai':
+        return [
+          'view_assigned_projects',
+          'view_assigned_routines',
+          'update_task_status',
+          'update_routine_status'
+        ];
+      case 'direksi':
+        return [
+          'view_reports'
+        ];
+      default:
+        return [];
     }
   }
 }

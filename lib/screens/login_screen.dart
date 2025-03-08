@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/utils/logger_util.dart';
 import 'package:taskfy/widgets/custom_text_field.dart';
 import 'package:taskfy/utils/error_handler.dart';
+import 'package:taskfy/services/auth_service.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -46,7 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      'Welcome Back',
+                      AppLocalizations.of(context)!.loginTitle,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -54,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to continue to your account',
+                      AppLocalizations.of(context)!.loginButton,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.grey[600],
                       ),
@@ -68,15 +71,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           CustomTextField(
                             controller: _emailController,
-                            labelText: 'Email',
+                            labelText: AppLocalizations.of(context)!.emailLabel,
                             prefixIcon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return AppLocalizations.of(context)!.emailRequired;
                               }
                               if (!value.contains('@')) {
-                                return 'Please enter a valid email';
+                                return AppLocalizations.of(context)!.invalidEmail;
                               }
                               return null;
                             },
@@ -84,15 +87,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 16),
                           CustomTextField(
                             controller: _passwordController,
-                            labelText: 'Password',
+                            labelText: AppLocalizations.of(context)!.passwordLabel,
                             prefixIcon: Icons.lock,
                             obscureText: true,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return AppLocalizations.of(context)!.passwordRequired;
                               }
                               if (value.length < 6) {
-                                return 'Password must be at least 6 characters long';
+                                return AppLocalizations.of(context)!.passwordTooShort;
                               }
                               return null;
                             },
@@ -100,32 +103,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 24),
                           ElevatedButton(
                             onPressed: _isLoading ? null : _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
                             child: _isLoading
-                                ? SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Theme.of(context).colorScheme.onPrimary,
-                                      ),
-                                    ),
-                                  )
-                                : const Text('Sign In'),
+                                ? const CircularProgressIndicator()
+                                : Text(AppLocalizations.of(context)!.loginButton),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () => context.go('/forgot-password'),
+                            child: Text(AppLocalizations.of(context)!.forgotPasswordButton),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => context.go('/forgot-password'),
-                      child: const Text('Forgot Password?'),
                     ),
                   ],
                 ),
@@ -149,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _passwordController.text,
         );
 
-        if (ref.read(authProvider) != null) {
+        if (ref.read(authProvider).value != null) {
           if (!mounted) return;
           context.go('/dashboard');
         } else {
@@ -158,7 +146,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } catch (e) {
         if (!mounted) return;
-        showErrorSnackBar(context, getErrorMessage(e));
+        
+        // Handle specific authentication errors
+        if (e is AuthError) {
+          showErrorSnackBar(context, e.message);
+        } else {
+          showErrorSnackBar(context, getErrorMessage(e));
+        }
+        
+        // Log the error for debugging
+        LoggerUtil.error('Login error', tag: 'LOGIN', error: e);
       } finally {
         if (mounted) {
           setState(() {

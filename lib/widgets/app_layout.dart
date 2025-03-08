@@ -4,6 +4,7 @@ import 'package:taskfy/config/style_guide.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
@@ -125,7 +126,8 @@ class AppLayout extends ConsumerWidget {
 
   Widget _buildUserMenu(BuildContext context) {
     return Consumer(builder: (context, ref, _) {
-      final user = ref.watch(authProvider);
+      final userState = ref.watch(authProvider);
+      final user = userState.value;
       final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
       return PopupMenuButton<String>(
@@ -161,10 +163,10 @@ class AppLayout extends ConsumerWidget {
           PopupMenuItem(
             value: 'logout',
             child: Row(
-              children: const [
-                Icon(Icons.logout),
-                SizedBox(width: 8),
-                Text('Logout'),
+              children: [
+                const Icon(Icons.logout),
+                const SizedBox(width: 8),
+                Text(AppLocalizations.of(context)!.logoutButton),
               ],
             ),
           ),
@@ -184,10 +186,11 @@ class AppLayout extends ConsumerWidget {
   Widget _buildSidebar(BuildContext context) {
     return Consumer(builder: (context, ref, _) {
       final permissions = ref.watch(permissionProvider);
+      final userRole = ref.watch(userRoleProvider);
       final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
       return _Sidebar(
         permissions: permissions,
+        userRole: userRole,
         isDarkMode: isDarkMode,
       );
     });
@@ -196,10 +199,12 @@ class AppLayout extends ConsumerWidget {
 
 class _Sidebar extends ConsumerStatefulWidget {
   final Set<String> permissions;
+  final String? userRole;
   final bool isDarkMode;
 
   const _Sidebar({
     required this.permissions,
+    required this.userRole,
     required this.isDarkMode,
   });
 
@@ -212,6 +217,7 @@ class _SidebarState extends ConsumerState<_Sidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: _isSidebarCollapsed ? 70 : 240,
@@ -235,51 +241,51 @@ class _SidebarState extends ConsumerState<_Sidebar> {
                 children: [
                   _buildSidebarItem(
                     icon: Icons.dashboard_outlined,
-                    title: 'Dashboard',
+                    title: l10n.dashboardTitle,
                     route: '/dashboard',
                     isDarkMode: widget.isDarkMode,
                   ),
-                  if (widget.permissions.contains('update_task_status'))
+                  if (widget.permissions.contains('update_routine_status'))
                     _buildSidebarItem(
                       icon: Icons.task_outlined,
-                      title: 'My Tasks',
-                      route: '/my-tasks',
+                      title: l10n.myRoutinesTitle,
+                      route: '/my-routines',
                       isDarkMode: widget.isDarkMode,
                     ),
                   if (widget.permissions.contains('update_project_status'))
                     _buildSidebarItem(
                       icon: Icons.work_outline,
-                      title: 'My Projects',
+                      title: l10n.myProjectsTitle,
                       route: '/my-projects',
                       isDarkMode: widget.isDarkMode,
                     ),
-                  if (widget.permissions.contains('update_task') ||
-                      widget.permissions.contains('create_task'))
+                  if (widget.permissions.contains('update_routine') ||
+                      widget.permissions.contains('create_routine'))
                     _buildSidebarItem(
                       icon: Icons.task_outlined,
-                      title: 'Tasks',
-                      route: '/tasks',
+                      title: l10n.routinesTitle,
+                      route: '/routines',
                       isDarkMode: widget.isDarkMode,
                     ),
                   if (widget.permissions.contains('create_project') ||
                       widget.permissions.contains('update_project'))
                     _buildSidebarItem(
                       icon: Icons.work_outline,
-                      title: 'Projects',
+                      title: l10n.projectsTitle,
                       route: '/projects',
                       isDarkMode: widget.isDarkMode,
                     ),
-                  if (widget.permissions.contains('manage_users'))
+                  if (widget.permissions.contains('manage_users') || widget.userRole == 'admin')
                     _buildSidebarItem(
                       icon: Icons.people,
-                      title: 'Users',
+                      title: l10n.usersTitle,
                       route: '/users',
                       isDarkMode: widget.isDarkMode,
                     ),
                   if (widget.permissions.contains('view_reports'))
                     _buildSidebarItem(
                       icon: Icons.bar_chart,
-                      title: 'Reports',
+                      title: l10n.reportsTitle,
                       route: '/reports',
                       isDarkMode: widget.isDarkMode,
                     ),
@@ -294,6 +300,7 @@ class _SidebarState extends ConsumerState<_Sidebar> {
   }
 
   Widget _buildSidebarHeader(bool isDarkMode) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -309,10 +316,10 @@ class _SidebarState extends ConsumerState<_Sidebar> {
               });
             },
           ),
-          if (!_isSidebarCollapsed) ...[
+          if (!_isSidebarCollapsed) ...[            
             const SizedBox(width: 8),
             Text(
-              'Task Manager',
+              l10n.appTitle,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

@@ -1,8 +1,12 @@
 class AppConstants {
+  // Routine Status
+  static const String routineStatusNotStarted = 'not_started';
+  static const String routineStatusInProgress = 'in_progress';
+  static const String routineStatusCompleted = 'completed';
   // Route names
   static const String loginRoute = '/login';
   static const String dashboardRoute = '/dashboard';
-  static const String tasksRoute = '/tasks';
+  static const String routinesRoute = '/routines';
   static const String projectsRoute = '/projects';
   static const String usersRoute = '/users';
   static const String reportsRoute = '/reports';
@@ -48,11 +52,14 @@ class AppConstants {
   static const String permissionCreateProject = 'create_project';
   static const String permissionEditProject = 'edit_project';
   static const String permissionDeleteProject = 'delete_project';
+  static const String permissionCreateRoutine = 'create_routine';
+  static const String permissionEditRoutine = 'edit_routine';
+  static const String permissionDeleteRoutine = 'delete_routine';
+  static const String permissionUpdateRoutineStatus = 'update_routine_status';
+  static const String permissionUpdateProjectStatus = 'update_project_status';
   static const String permissionCreateTask = 'create_task';
   static const String permissionEditTask = 'edit_task';
   static const String permissionDeleteTask = 'delete_task';
-  static const String permissionUpdateTaskStatus = 'update_task_status';
-  static const String permissionUpdateProjectStatus = 'update_project_status';
 
   // Error messages
   static const String genericErrorMessage = 'An unexpected error occurred. Please try again.';

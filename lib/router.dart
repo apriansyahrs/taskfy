@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:taskfy/screens/login_screen.dart';
 import 'package:taskfy/screens/forgot_password_screen.dart';
 import 'package:taskfy/screens/dashboard_screen.dart';
-import 'package:taskfy/screens/task_detail_screen.dart';
+import 'package:taskfy/screens/routine_detail_screen.dart';
 import 'package:taskfy/screens/project_detail_screen.dart';
-import 'package:taskfy/screens/task_create_screen.dart';
+import 'package:taskfy/screens/routine_create_screen.dart';
 import 'package:taskfy/screens/project_create_screen.dart';
-import 'package:taskfy/screens/task_list_screen.dart';
+import 'package:taskfy/screens/routine_list_screen.dart';
 import 'package:taskfy/screens/project_list_screen.dart';
-import 'package:taskfy/screens/task_edit_screen.dart';
+import 'package:taskfy/screens/routine_edit_screen.dart';
 import 'package:taskfy/screens/project_edit_screen.dart';
 import 'package:taskfy/screens/report_screen.dart';
 import 'package:taskfy/screens/user_list_screen.dart';
@@ -18,10 +18,10 @@ import 'package:taskfy/screens/user_create_screen.dart';
 import 'package:taskfy/screens/user_edit_screen.dart';
 import 'package:taskfy/state/app_state.dart';
 import 'package:taskfy/middleware/auth_middleware.dart';
-import 'package:taskfy/screens/my_tasks_screen.dart';
 import 'package:taskfy/screens/my_projects_screen.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/screens/reset_password_screen.dart';
+import 'package:taskfy/screens/my_routines_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -57,36 +57,36 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppConstants.tasksRoute,
+        path: AppConstants.routinesRoute,
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
-          child: const TaskListScreen(),
+          child: const RoutineListScreen(),
         ),
       ),
       GoRoute(
-        path: '${AppConstants.tasksRoute}/create',
+        path: '${AppConstants.routinesRoute}/create',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
-          child: const TaskCreateScreen(),
+          child: const RoutineCreateScreen(),
         ),
       ),
       GoRoute(
-        path: '${AppConstants.tasksRoute}/:id',
+        path: '${AppConstants.routinesRoute}/:routineId',
         pageBuilder: (context, state) {
-          final id = state.pathParameters['id'];
+          final routineId = state.pathParameters['routineId'];
           return NoTransitionPage<void>(
             key: state.pageKey,
-            child: TaskDetailScreen(taskId: id ?? ''),
+            child: RoutineDetailScreen(routineId: routineId ?? ''),
           );
         },
       ),
       GoRoute(
-        path: '${AppConstants.tasksRoute}/:id/edit',
+        path: '${AppConstants.routinesRoute}/:routineId/edit',
         pageBuilder: (context, state) {
-          final id = state.pathParameters['id'];
+          final routineId = state.pathParameters['routineId'];
           return NoTransitionPage<void>(
             key: state.pageKey,
-            child: TaskEditScreen(taskId: id ?? ''),
+            child: RoutineEditScreen(routineId: routineId ?? ''),
           );
         },
       ),
@@ -165,10 +165,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/my-tasks',
+        path: '/my-routines',
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
-          child: const MyTasksScreen(),
+          child: const MyRoutinesScreen(),
         ),
       ),
       GoRoute(
@@ -201,8 +201,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (state.uri.path == AppConstants.reportsRoute && !_hasPermission(AppConstants.permissionViewReports, userRole)) {
           return AppConstants.dashboardRoute;
         }
-        if ((state.uri.path == '${AppConstants.tasksRoute}/create' || state.uri.path == '${AppConstants.projectsRoute}/create') && 
-            !_hasPermission(AppConstants.permissionCreateTask, userRole) && !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
+        if ((state.uri.path == '${AppConstants.routinesRoute}/create' || state.uri.path == '${AppConstants.projectsRoute}/create') && 
+            !_hasPermission(AppConstants.permissionCreateRoutine, userRole) && !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
           return AppConstants.dashboardRoute;
         }
       }
@@ -217,24 +217,31 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
+// Use the permission provider instead of hardcoded role-based permissions
 bool _hasPermission(String permission, String role) {
   switch (role) {
-    case AppConstants.roleAdmin:
-      return true;
     case AppConstants.roleManager:
       return [
         AppConstants.permissionCreateProject,
-        AppConstants.permissionCreateTask,
-        AppConstants.permissionEditTask,
-        AppConstants.permissionViewReports
+        AppConstants.permissionEditProject,
+        AppConstants.permissionDeleteProject,
+        AppConstants.permissionCreateRoutine,
+        AppConstants.permissionEditRoutine,
+        AppConstants.permissionDeleteRoutine,
+        AppConstants.permissionViewReports,
+        'monitor_progress'
       ].contains(permission);
     case AppConstants.roleEmployee:
       return [
-        AppConstants.permissionUpdateTaskStatus,
+        'view_assigned_projects',
+        'view_assigned_routines',
+        AppConstants.permissionUpdateRoutineStatus,
         AppConstants.permissionUpdateProjectStatus
       ].contains(permission);
     case AppConstants.roleExecutive:
       return [AppConstants.permissionViewReports].contains(permission);
+    case AppConstants.roleAdmin:
+      return [AppConstants.permissionManageUsers].contains(permission);
     default:
       return false;
   }

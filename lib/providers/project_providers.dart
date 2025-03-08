@@ -4,47 +4,59 @@ import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:logging/logging.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/config/constants.dart';
 
 final _log = Logger('ProjectNotifier');
 
 /// Provider for a list of projects, optionally filtered by user email.
-final projectListStreamProvider = StreamProvider.family<List<Project>, String?>((ref, userEmail) async* {
+final projectListStreamProvider =
+    StreamProvider.family<List<Project>, String?>((ref, userEmail) {
   final supabase = getIt<SupabaseClientWrapper>().client;
-  
+  final user = ref.watch(authProvider).value;
+
+  // Create a stream based on user role and email
   Stream<List<Map<String, dynamic>>> stream;
   if (userEmail != null) {
-    final user = ref.watch(authProvider);
-    if (user?.role == 'admin' || user?.role == 'manager') {
+    if (user != null &&
+        (user.role == AppConstants.roleAdmin ||
+            user.role == AppConstants.roleManager)) {
       // For admin and manager, return all projects
       stream = supabase.from('projects').stream(primaryKey: ['id']);
     } else {
       // For other roles, return only projects they're part of
-      stream = supabase
-        .from('projects')
-        .select()
-        .filter('team_members', 'cs', '{$userEmail}')
-        .order('end_date')
-        .then((data) => data.map((json) => json).toList())
-        .asStream();
+      // Use a different approach to avoid potential stream controller issues
+      return supabase
+          .from('projects')
+          .select()
+          .filter('team_members', 'cs', '["${userEmail}"]')
+          .order('end_date', ascending: false)
+          .then((data) {
+            final projects = data.map((json) => Project.fromJson(json)).toList();
+            projects.sort((a, b) => a.endDate.compareTo(b.endDate));
+            return projects;
+          })
+          .asStream();
     }
   } else {
     // If no userEmail is provided, return all projects (useful for admin views)
     stream = supabase.from('projects').stream(primaryKey: ['id']);
   }
 
-  await for (final data in stream) {
+  // Transform the stream to return Project objects
+  return stream.map((data) {
     final projects = data.map((json) => Project.fromJson(json)).toList();
     projects.sort((a, b) => a.endDate.compareTo(b.endDate));
-    yield projects;
-  }
+    return projects;
+  });
 });
 
 /// Provider for a single project, identified by its ID.
-final projectProvider = StreamProvider.family<Project?, String>((ref, projectId) async* {
-  final stream = getIt<SupabaseClientWrapper>().client
+final projectProvider =
+    StreamProvider.family<Project?, String>((ref, projectId) async* {
+  final stream = getIt<SupabaseClientWrapper>()
+      .client
       .from('projects')
-      .stream(primaryKey: ['id'])
-      .eq('id', projectId);
+      .stream(primaryKey: ['id']).eq('id', projectId);
 
   await for (final data in stream) {
     if (data.isNotEmpty) {
@@ -85,7 +97,10 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   Future<void> updateProject(Project project) async {
     state = const AsyncValue.loading();
     try {
-      await _supabase.from('projects').update(project.toJson()).eq('id', project.id);
+      await _supabase
+          .from('projects')
+          .update(project.toJson())
+          .eq('id', project.id);
       state = AsyncValue.data(project);
       _log.info('Project updated successfully: ${project.name}');
     } catch (e, stack) {
@@ -99,7 +114,35 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   Future<void> deleteProject(String projectId) async {
     state = const AsyncValue.loading();
     try {
+      _log.info('Attempting to delete project with ID: $projectId');
+
+      // First check if the project exists
+      final projectExists = await _supabase
+          .from('projects')
+          .select('id')
+          .eq('id', projectId)
+          .maybeSingle();
+
+      if (projectExists == null) {
+        _log.warning('Project with ID $projectId not found');
+        state = AsyncValue.error('Project not found', StackTrace.current);
+        return;
+      }
+
+      // Use explicit delete with await
       await _supabase.from('projects').delete().eq('id', projectId);
+
+      // Verify deletion was successful
+      final checkDeleted = await _supabase
+          .from('projects')
+          .select('id')
+          .eq('id', projectId)
+          .maybeSingle();
+
+      if (checkDeleted != null) {
+        throw Exception('Failed to delete project: Record still exists');
+      }
+
       state = const AsyncValue.data(null);
       _log.info('Project deleted successfully: $projectId');
     } catch (e, stack) {
@@ -111,7 +154,7 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
 }
 
 /// Provider for the ProjectNotifier.
-final projectNotifierProvider = StateNotifierProvider<ProjectNotifier, AsyncValue<Project?>>((ref) {
+final projectNotifierProvider =
+    StateNotifierProvider<ProjectNotifier, AsyncValue<Project?>>((ref) {
   return ProjectNotifier();
 });
-

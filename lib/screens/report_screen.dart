@@ -4,14 +4,15 @@ import 'package:taskfy/config/style_guide.dart';
 import 'package:taskfy/widgets/app_layout.dart';
 import 'package:taskfy/widgets/stat_card.dart';
 import 'package:taskfy/widgets/project_chart.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class ReportScreen extends ConsumerWidget {
   const ReportScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return AppLayout(
-      title: 'Task Manager',
-      pageTitle: 'Reports',
+      title: AppLocalizations.of(context)!.appTitle,
+      pageTitle: AppLocalizations.of(context)!.reportsTitle,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -26,7 +27,7 @@ class ReportScreen extends ConsumerWidget {
                     SizedBox(
                       width: cardWidth,
                       child: StatCard(
-                        title: 'Total Reports',
+                        title: AppLocalizations.of(context)!.reportsTitle,
                         value: '8',
                         icon: Icons.assessment,
                         color: Colors.purple,
@@ -35,7 +36,7 @@ class ReportScreen extends ConsumerWidget {
                     SizedBox(
                       width: cardWidth,
                       child: StatCard(
-                        title: 'Generated Today',
+                        title: AppLocalizations.of(context)!.todayRoutinesTitle,
                         value: '3',
                         icon: Icons.today,
                         color: Colors.orange,
@@ -53,7 +54,7 @@ class ReportScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Project Statistics',
+                      AppLocalizations.of(context)!.projectsTitle,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     SizedBox(height: StyleGuide.spacingMedium),
