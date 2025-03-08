@@ -249,14 +249,7 @@ class AuthService {
     switch (role) {
       case 'admin':
         return [
-          'create_user',
-          'update_user',
-          'delete_user',
-          'manage_roles',
-          'view_reports',
-          'create_task',
-          'edit_task',
-          'delete_task'
+          'manage_users',
         ];
       case 'manager':
         return [
@@ -267,7 +260,6 @@ class AuthService {
           'update_routine',
           'delete_routine',
           'view_reports',
-          'monitor_progress',
           'create_task',
           'edit_task',
           'delete_task'

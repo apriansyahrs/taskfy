@@ -28,7 +28,7 @@ final projectListStreamProvider =
       return supabase
           .from('projects')
           .select()
-          .filter('team_members', 'cs', '["${userEmail}"]')
+          .filter('team_members', 'cs', '["$userEmail"]')
           .order('end_date', ascending: false)
           .then((data) {
             final projects = data.map((json) => Project.fromJson(json)).toList();

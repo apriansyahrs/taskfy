@@ -29,7 +29,7 @@ final routineListStreamProvider =
       stream = supabase
           .from('routines')
           .select()
-          .filter('assignees', 'cs', '["' + userEmail + '"]')
+          .filter('assignees', 'cs', '["$userEmail"]')
           .order('due_date', ascending: true)
           .then((data) => data.map((json) => json).toList())
           .asStream();

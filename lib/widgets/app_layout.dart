@@ -41,7 +41,7 @@ class AppLayout extends ConsumerWidget {
                     _buildAppBar(context, isWideScreen),
                     Expanded(
                       child: Container(
-                        color: Theme.of(context).scaffoldBackgroundColor,
+                        color: Theme.of(context).colorScheme.surface,
                         child: SingleChildScrollView(
                           padding: EdgeInsets.all(isWideScreen ? StyleGuide.paddingLarge : StyleGuide.paddingMedium),
                           child: Column(
@@ -70,19 +70,24 @@ class AppLayout extends ConsumerWidget {
       height: 64,
       padding: EdgeInsets.symmetric(horizontal: isWideScreen ? 24.0 : 16.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
-        ),
+        ],
       ),
       child: Row(
         children: [
           if (!isWideScreen)
             IconButton(
-              icon: const Icon(Icons.menu),
+              icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.onSurface),
               onPressed: () => Scaffold.of(context).openDrawer(),
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           const Spacer(),
           _buildUserMenu(context),
@@ -128,10 +133,12 @@ class AppLayout extends ConsumerWidget {
     return Consumer(builder: (context, ref, _) {
       final userState = ref.watch(authProvider);
       final user = userState.value;
-      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
       return PopupMenuButton<String>(
         offset: const Offset(0, 40),
+        position: PopupMenuPosition.under,
+        elevation: 3,
+        surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
         child: Row(
           children: [
             CircleAvatar(
@@ -143,6 +150,7 @@ class AppLayout extends ConsumerWidget {
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontSize: 14,
+                  fontFamily: 'Inter',
                 ),
               ),
             ),
@@ -150,12 +158,13 @@ class AppLayout extends ConsumerWidget {
             Text(
               user?.email ?? 'User',
               style: TextStyle(
-                color: isDarkMode ? Colors.white : Colors.black,
+                color: Theme.of(context).colorScheme.onSurface,
+                fontFamily: 'Inter',
               ),
             ),
             Icon(
               Icons.arrow_drop_down,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ],
         ),
@@ -164,9 +173,15 @@ class AppLayout extends ConsumerWidget {
             value: 'logout',
             child: Row(
               children: [
-                const Icon(Icons.logout),
+                Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
                 const SizedBox(width: 8),
-                Text(AppLocalizations.of(context)!.logoutButton),
+                Text(
+                  AppLocalizations.of(context)!.logoutButton,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                ),
               ],
             ),
           ),
@@ -182,7 +197,6 @@ class AppLayout extends ConsumerWidget {
       );
     });
   }
-
   Widget _buildSidebar(BuildContext context) {
     return Consumer(builder: (context, ref, _) {
       final permissions = ref.watch(permissionProvider);
@@ -223,13 +237,14 @@ class _SidebarState extends ConsumerState<_Sidebar> {
       width: _isSidebarCollapsed ? 70 : 240,
       padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
-        color: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-        border: Border(
-          right: BorderSide(
-            color: widget.isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-            width: 1,
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+            blurRadius: 2,
+            offset: const Offset(1, 0),
           ),
-        ),
+        ],
       ),
       child: Column(
         children: [
@@ -275,7 +290,7 @@ class _SidebarState extends ConsumerState<_Sidebar> {
                       route: '/projects',
                       isDarkMode: widget.isDarkMode,
                     ),
-                  if (widget.permissions.contains('manage_users') || widget.userRole == 'admin')
+                  if (widget.permissions.contains('manage_users'))
                     _buildSidebarItem(
                       icon: Icons.people,
                       title: l10n.usersTitle,
@@ -308,7 +323,11 @@ class _SidebarState extends ConsumerState<_Sidebar> {
           IconButton(
             icon: Icon(
               _isSidebarCollapsed ? Icons.menu : Icons.menu_open,
-              color: isDarkMode ? Colors.white : Colors.black,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            style: IconButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              backgroundColor: Colors.transparent,
             ),
             onPressed: () {
               setState(() {
@@ -323,7 +342,8 @@ class _SidebarState extends ConsumerState<_Sidebar> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : Colors.black,
+                fontFamily: 'Inter',
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -341,39 +361,38 @@ class _SidebarState extends ConsumerState<_Sidebar> {
   }) {
     final isActive =
         route != null && GoRouterState.of(context).uri.path == route;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
     final activeColor = Theme.of(context).colorScheme.primary;
-    final hoverColor = isDarkMode
-        ? Colors.white.withOpacity(0.1)
-        : Colors.black.withOpacity(0.05);
+    final hoverColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.05);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ?? (route != null ? () => context.go(route) : null),
         hoverColor: hoverColor,
+        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
         child: Container(
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           margin: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             color: isActive ? activeColor.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
           ),
           child: Row(
             children: [
               Icon(
                 icon,
                 size: 20,
-                color: isActive ? activeColor : textColor.withOpacity(0.7),
+                color: isActive ? activeColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
-              if (!_isSidebarCollapsed) ...[
+              if (!_isSidebarCollapsed) ...[                
                 const SizedBox(width: 12),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isActive ? activeColor : textColor.withOpacity(0.7),
+                    fontFamily: 'Inter',
+                    color: isActive ? activeColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                     fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),

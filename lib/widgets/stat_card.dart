@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:taskfy/config/theme_config.dart';
 import 'package:taskfy/config/style_guide.dart';
 
 class StatCard extends StatelessWidget {
@@ -22,14 +21,15 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 600;
     
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
+        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge),
         child: Container(
           padding: EdgeInsets.all(isSmallScreen ? StyleGuide.paddingSmall : StyleGuide.paddingMedium),
           child: Column(
@@ -41,12 +41,12 @@ class StatCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: isDarkMode 
-                                ? ThemeConfig.textSecondaryDark 
-                                : ThemeConfig.textSecondaryLight,
-                            fontSize: isSmallScreen ? 14 : 16,
-                          ),
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: isSmallScreen ? 14 : 16,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -67,24 +67,22 @@ class StatCard extends StatelessWidget {
               SizedBox(height: isSmallScreen ? 12 : 16),
               Text(
                 value,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: isDarkMode 
-                          ? ThemeConfig.textPrimaryDark 
-                          : ThemeConfig.textPrimaryLight,
-                      fontWeight: FontWeight.w600,
-                      fontSize: isSmallScreen ? 24 : 28,
-                    ),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: isSmallScreen ? 24 : 28,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               if (subtitle != null) ...[                
                 SizedBox(height: isSmallScreen ? 2 : 4),
                 Text(
                   subtitle!,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isDarkMode 
-                            ? ThemeConfig.textSecondaryDark 
-                            : ThemeConfig.textSecondaryLight,
-                        fontSize: isSmallScreen ? 12 : 14,
-                      ),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: isSmallScreen ? 12 : 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

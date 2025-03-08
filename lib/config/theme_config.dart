@@ -27,12 +27,21 @@ class ThemeConfig {
   static const Color infoColor = Color(0xFF3B82F6);
 
   static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: backgroundLight,
     primaryColor: primaryLight,
-    colorScheme: const ColorScheme.light(
+    colorScheme: ColorScheme.light(
       primary: accentColorLight,
       secondary: accentColorLight,
+      surface: cardLight,
+      error: errorColor,
+      onPrimary: primaryLight,
+      onSecondary: primaryLight,
+      onSurface: textPrimaryLight,
+      onError: primaryLight,
+      surfaceTint: accentColorLight.withOpacity(0.05),
+      outlineVariant: borderLight,
     ),
     
     // Text Theme
@@ -129,6 +138,53 @@ class ThemeConfig {
         ),
       ),
     ),
+    
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(accentColorLight),
+        foregroundColor: WidgetStateProperty.all(primaryLight),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        elevation: WidgetStateProperty.all(0),
+      ),
+    ),
+    
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(accentColorLight),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        side: WidgetStateProperty.all(
+          BorderSide(color: accentColorLight),
+        ),
+      ),
+    ),
+    
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(accentColorLight),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    ),
 
     // Icon Theme
     iconTheme: const IconThemeData(
@@ -190,27 +246,94 @@ class ThemeConfig {
       color: accentColorLight,
       linearTrackColor: borderLight,
     ),
-
-    // Tooltip Theme
-    tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: textPrimaryLight.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(4),
+    
+    // Floating Action Button Theme
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: accentColorLight,
+      foregroundColor: primaryLight,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-      textStyle: const TextStyle(color: primaryLight),
+    ),
+    
+    // Chip Theme
+    chipTheme: ChipThemeData(
+      backgroundColor: cardLight,
+      disabledColor: borderLight,
+      selectedColor: accentColorLight.withOpacity(0.2),
+      secondarySelectedColor: accentColorLight,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      labelStyle: const TextStyle(fontSize: 14),
+      secondaryLabelStyle: const TextStyle(color: primaryLight),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: borderLight),
+      ),
+    ),
+    
+    // Dialog Theme
+    dialogTheme: DialogTheme(
+      backgroundColor: cardLight,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+    
+    // Bottom Sheet Theme
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: cardLight,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+    ),
+    
+    // Navigation Bar Theme
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: cardLight,
+      indicatorColor: accentColorLight.withOpacity(0.1),
+      labelTextStyle: WidgetStateProperty.all(
+        const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+      iconTheme: WidgetStateProperty.all(
+        const IconThemeData(size: 24),
+      ),
+    ),
+    
+    // Navigation Rail Theme
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: cardLight,
+      selectedIconTheme: const IconThemeData(color: accentColorLight),
+      unselectedIconTheme: const IconThemeData(color: textSecondaryLight),
+      selectedLabelTextStyle: const TextStyle(
+        color: accentColorLight,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelTextStyle: const TextStyle(color: textSecondaryLight),
     ),
   );
 
-  // Dark Theme (keeping the existing dark theme configuration with some improvements)
   static ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: backgroundDark,
     primaryColor: primaryDark,
-    colorScheme: const ColorScheme.dark(
+    colorScheme: ColorScheme.dark(
       primary: accentColorDark,
       secondary: accentColorDark,
+      surface: cardDark,
+      error: errorColor,
+      onPrimary: textPrimaryDark,
+      onSecondary: textPrimaryDark,
+      onSurface: textPrimaryDark,
+      onError: textPrimaryDark,
+      surfaceTint: accentColorDark.withOpacity(0.05),
+      outlineVariant: borderDark,
     ),
     
+    // Text Theme
     textTheme: GoogleFonts.interTextTheme(
       ThemeData.dark().textTheme.copyWith(
         headlineLarge: const TextStyle(
@@ -246,6 +369,7 @@ class ThemeConfig {
       ),
     ),
 
+    // Card Theme
     cardTheme: CardTheme(
       color: cardDark,
       elevation: 0,
@@ -259,6 +383,7 @@ class ThemeConfig {
       margin: EdgeInsets.zero,
     ),
 
+    // Input Decoration Theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: cardDark,
@@ -280,6 +405,7 @@ class ThemeConfig {
       errorStyle: const TextStyle(color: errorColor),
     ),
 
+    // Button Theme
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.all(accentColorDark),
@@ -301,12 +427,61 @@ class ThemeConfig {
         ),
       ),
     ),
+    
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(accentColorDark),
+        foregroundColor: WidgetStateProperty.all(textPrimaryDark),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        elevation: WidgetStateProperty.all(0),
+      ),
+    ),
+    
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(accentColorDark),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        side: WidgetStateProperty.all(
+          BorderSide(color: accentColorDark),
+        ),
+      ),
+    ),
+    
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(accentColorDark),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    ),
 
+    // Icon Theme
     iconTheme: const IconThemeData(
       color: textSecondaryDark,
       size: 24,
     ),
 
+    // App Bar Theme
     appBarTheme: const AppBarTheme(
       backgroundColor: primaryDark,
       foregroundColor: textPrimaryDark,
@@ -319,12 +494,14 @@ class ThemeConfig {
       ),
     ),
 
+    // Divider Theme
     dividerTheme: const DividerThemeData(
       color: borderDark,
       thickness: 1,
       space: 24,
     ),
 
+    // Checkbox Theme
     checkboxTheme: CheckboxThemeData(
       fillColor: WidgetStateProperty.resolveWith<Color>((states) {
         if (states.contains(WidgetState.selected)) {
@@ -337,6 +514,7 @@ class ThemeConfig {
       ),
     ),
 
+    // Switch Theme
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
         if (states.contains(WidgetState.selected)) {
@@ -352,11 +530,80 @@ class ThemeConfig {
       }),
     ),
 
+    // Progress Indicator Theme
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: accentColorDark,
       linearTrackColor: borderDark,
     ),
-
+    
+    // Floating Action Button Theme
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: accentColorDark,
+      foregroundColor: textPrimaryDark,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+    
+    // Chip Theme
+    chipTheme: ChipThemeData(
+      backgroundColor: cardDark,
+      disabledColor: borderDark,
+      selectedColor: accentColorDark.withOpacity(0.2),
+      secondarySelectedColor: accentColorDark,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      labelStyle: const TextStyle(fontSize: 14),
+      secondaryLabelStyle: const TextStyle(color: textPrimaryDark),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: borderDark),
+      ),
+    ),
+    
+    // Dialog Theme
+    dialogTheme: DialogTheme(
+      backgroundColor: cardDark,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+    
+    // Bottom Sheet Theme
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: cardDark,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+    ),
+    
+    // Navigation Bar Theme
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: cardDark,
+      indicatorColor: accentColorDark.withOpacity(0.1),
+      labelTextStyle: WidgetStateProperty.all(
+        const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+      iconTheme: WidgetStateProperty.all(
+        const IconThemeData(size: 24),
+      ),
+    ),
+    
+    // Navigation Rail Theme
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: cardDark,
+      selectedIconTheme: const IconThemeData(color: accentColorDark),
+      unselectedIconTheme: const IconThemeData(color: textSecondaryDark),
+      selectedLabelTextStyle: const TextStyle(
+        color: accentColorDark,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelTextStyle: const TextStyle(color: textSecondaryDark),
+    ),
+    
+    // Tooltip Theme
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
         color: textPrimaryDark.withOpacity(0.9),
@@ -364,6 +611,79 @@ class ThemeConfig {
       ),
       textStyle: const TextStyle(color: primaryDark),
     ),
+    
+    // Snackbar Theme
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: cardDark,
+      contentTextStyle: const TextStyle(color: textPrimaryDark),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      actionTextColor: accentColorDark,
+      behavior: SnackBarBehavior.floating,
+    ),
+    
+    // Tab Bar Theme
+    tabBarTheme: const TabBarTheme(
+      labelColor: accentColorDark,
+      unselectedLabelColor: textSecondaryDark,
+      indicatorColor: accentColorDark,
+      dividerColor: borderDark,
+    ),
+    
+    // Slider Theme
+    sliderTheme: SliderThemeData(
+      activeTrackColor: accentColorDark,
+      inactiveTrackColor: borderDark,
+      thumbColor: accentColorDark,
+      overlayColor: accentColorDark.withOpacity(0.2),
+      valueIndicatorColor: accentColorDark,
+      valueIndicatorTextStyle: const TextStyle(color: textPrimaryDark),
+    ),
+    
+    // Date Picker Theme
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: cardDark,
+      headerBackgroundColor: accentColorDark,
+      headerForegroundColor: textPrimaryDark,
+      dayBackgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return accentColorDark;
+        }
+        return cardDark;
+      }),
+      dayForegroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return textPrimaryDark;
+        }
+        return textPrimaryDark;
+      }),
+      todayBackgroundColor: WidgetStateProperty.all(accentColorDark.withOpacity(0.2)),
+      todayForegroundColor: WidgetStateProperty.all(accentColorDark),
+      yearBackgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return accentColorDark;
+        }
+        return cardDark;
+      }),
+      yearForegroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return textPrimaryDark;
+        }
+        return textPrimaryDark;
+      }),
+    ),
+    
+    // Time Picker Theme
+    timePickerTheme: TimePickerThemeData(
+      backgroundColor: cardDark,
+      hourMinuteTextColor: textPrimaryDark,
+      hourMinuteColor: cardDark,
+      dayPeriodTextColor: textPrimaryDark,
+      dayPeriodColor: cardDark,
+      dialHandColor: accentColorDark,
+      dialBackgroundColor: cardDark,
+      dialTextColor: textPrimaryDark,
+      entryModeIconColor: accentColorDark,
+    )
   );
 }
 
