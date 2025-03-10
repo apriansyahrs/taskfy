@@ -57,7 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      AppLocalizations.of(context)!.loginButton,
+                      AppLocalizations.of(context)!.loginSubtitle,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Colors.grey[600],
                       ),

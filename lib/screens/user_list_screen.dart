@@ -78,6 +78,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
         final adminCount = users.where((user) => user.role == 'admin').length;
         final managerCount = users.where((user) => user.role == 'manager').length;
         final employeeCount = users.where((user) => user.role == 'pegawai').length;
+        final direksiCount = users.where((user) => user.role == 'direksi').length;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -89,6 +90,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
                 _buildStatCard(l10n.adminsTitle, adminCount.toString(), Icons.admin_panel_settings, Colors.red, constraints),
                 _buildStatCard(l10n.managersTitle, managerCount.toString(), Icons.manage_accounts, Colors.orange, constraints),
                 _buildStatCard(l10n.employeesTitle, employeeCount.toString(), Icons.work, Colors.green, constraints),
+                _buildStatCard(l10n.executivesTitle, direksiCount.toString(), Icons.business, Colors.purple, constraints),
               ],
             );
           },

@@ -4,7 +4,6 @@ class User {
   final String role;
   final List<String> permissions;
   final bool isActive;
-  final String? lastActive;
 
   User({
     required this.id,
@@ -12,7 +11,6 @@ class User {
     required this.role,
     this.permissions = const [],
     this.isActive = true,
-    this.lastActive,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -24,7 +22,6 @@ class User {
           ? List<String>.from(json['permissions'] as List)
           : [],
       isActive: json['is_active'] as bool? ?? true,
-      lastActive: json['last_active'] as String?,
     );
   }
 
@@ -35,7 +32,6 @@ class User {
       'role': role,
       'permissions': permissions,
       'is_active': isActive,
-      'last_active': lastActive,
     };
   }
 
@@ -45,7 +41,6 @@ class User {
     String? role,
     List<String>? permissions,
     bool? isActive,
-    String? lastActive,
   }) {
     return User(
       id: id ?? this.id,
@@ -53,7 +48,6 @@ class User {
       role: role ?? this.role,
       permissions: permissions ?? this.permissions,
       isActive: isActive ?? this.isActive,
-      lastActive: lastActive ?? this.lastActive,
     );
   }
 

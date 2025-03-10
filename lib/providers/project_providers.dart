@@ -18,13 +18,9 @@ final projectListStreamProvider =
   Stream<List<Map<String, dynamic>>> stream;
   if (userEmail != null) {
     if (user != null &&
-        (user.role == AppConstants.roleAdmin ||
-            user.role == AppConstants.roleManager)) {
-      // For admin and manager, return all projects
+        (user.role == AppConstants.roleAdmin || user.role == AppConstants.roleManager || user.role == AppConstants.roleExecutive)) {
       stream = supabase.from('projects').stream(primaryKey: ['id']);
     } else {
-      // For other roles, return only projects they're part of
-      // Use a different approach to avoid potential stream controller issues
       return supabase
           .from('projects')
           .select()

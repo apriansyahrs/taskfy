@@ -43,7 +43,6 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
         throw Exception('Failed to create user in Auth');
       }
 
-      // Get default permissions based on role if not provided
       List<String> permissions = user.permissions.isNotEmpty 
           ? user.permissions 
           : _getDefaultPermissions(user.role);
@@ -52,7 +51,6 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
         id: authResponse.user!.id,
         permissions: permissions,
         isActive: true,
-        lastActive: DateTime.now().toIso8601String(),
       );
 
       await _supabase.from('users').insert(newUser.toJson());
@@ -76,32 +74,33 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
   Future<bool> updateUser(taskfy_user.User user) async {
     try {
       _log.info('Attempting to update user role to: ${user.role}');
-
-      // Get default permissions based on new role
-      List<String> permissions = _getDefaultPermissions(user.role);
       
-      // Update role and permissions in the 'users' table
-      final response = await _supabase.from('users').update({
+      // Update both role and permissions in the database
+      await _supabase.from('users').update({
         'role': user.role,
-        'permissions': permissions,
-        'last_active': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
-
-      _log.info('Database update response: $response');
 
       // Fetch the updated user data
       final updatedUserData =
           await _supabase.from('users').select().eq('id', user.id).single();
       _log.info('Fetched updated user data: $updatedUserData');
 
-      final updatedUser = taskfy_user.User.fromJson(updatedUserData);
-      _log.info('Verifying updated role - New role from database: ${updatedUser.role}');
+    
+      // Create updated user with permissions calculated from role
+      final updatedUser = taskfy_user.User.fromJson({
+        ...updatedUserData,
+        'role': user.role,
+      });
+      
+      _log.info('Updated user role: ${updatedUser.role} with permissions: ${updatedUser.permissions}');
+      
+      // Update state with the new user data
       state = AsyncValue.data(state.value
               ?.map((u) => u.id == user.id ? updatedUser : u)
               .toList() ??
           []);
-      _log.info(
-          'User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
+          
+      _log.info('User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
       return true;
     } catch (e) {
       _log.warning('Error updating user role: $e');
@@ -136,10 +135,6 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
     switch (role) {
       case 'admin':
         return [
-          'create_user',
-          'update_user',
-          'delete_user',
-          'manage_roles',
           'view_reports'
         ];
       case 'manager':

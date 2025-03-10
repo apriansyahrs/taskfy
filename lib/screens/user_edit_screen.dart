@@ -10,9 +10,7 @@ final _log = Logger('UserEditScreen');
 
 class UserEditScreen extends ConsumerStatefulWidget {
   final String userId;
-
   const UserEditScreen({super.key, required this.userId});
-
   @override
   ConsumerState<UserEditScreen> createState() => _UserEditScreenState();
 }
@@ -20,8 +18,16 @@ class UserEditScreen extends ConsumerStatefulWidget {
 class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _emailController;
-  String _selectedRole = 'pegawai';
+  String _selectedRole = '';
   bool _isLoading = false;
+  bool _hasInitialized = false;
+
+  static const List<String> _availableRoles = [
+    'admin',
+    'manager',
+    'pegawai',
+    'direksi'
+  ];
 
   @override
   void initState() {
@@ -35,10 +41,76 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     super.dispose();
   }
 
+  void _initializeUserData(taskfy_user.User user) {
+    if (!_hasInitialized) {
+      _emailController.text = user.email;
+      _selectedRole = user.role;
+      _hasInitialized = true;
+      _log.info('Initialized user data: ${user.email}, role: ${user.role}');
+    }
+  }
+
+  Future<void> _updateUser() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        _log.info('Updating user with role: $_selectedRole');
+        final updatedUser = taskfy_user.User(
+          id: widget.userId,
+          email: _emailController.text,
+          role: _selectedRole,
+        );
+
+        final result = await ref.read(userNotifierProvider.notifier).updateUser(updatedUser);
+        if (!mounted) return;
+        if (result) {
+          _showSuccessMessage();
+          _navigateBack();
+        } else {
+          _showErrorMessage('Failed to update user role');
+        }
+      } catch (e) {
+        _log.warning('Error updating user: $e');
+        if (mounted) {
+          _showErrorMessage('Error: $e');
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  void _showSuccessMessage() {
+    _log.info('User role updated successfully');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('User role updated successfully')),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  void _navigateBack() {
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        context.pop();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userAsyncValue = ref.watch(userProvider(widget.userId));
-
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'Edit User Role',
@@ -54,66 +126,8 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
           if (user == null) {
             return const Center(child: Text('User not found'));
           }
-          _emailController.text = user.email;
-          if (_selectedRole == 'pegawai') {
-            _selectedRole = user.role;
-          }
-          _log.info('Current selected role: $_selectedRole');
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Email: ${_emailController.text}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Role',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      items: ['admin', 'manager', 'pegawai', 'direksi'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _selectedRole = newValue;
-                            _log.info('Role changed to: $_selectedRole');
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _updateUser,
-                          child: const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Text('Update User Role'),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
+          _initializeUserData(user);
+          return _buildUserEditForm(context);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -121,47 +135,74 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     );
   }
 
-  void _updateUser() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+  Widget _buildUserEditForm(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildEmailDisplay(context),
+              const SizedBox(height: 16),
+              _buildRoleDropdown(),
+              const SizedBox(height: 32),
+              _buildUpdateButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-      try {
-        _log.info('Updating user with role: $_selectedRole');
-        final updatedUser = taskfy_user.User(
-          id: widget.userId,
-          email: _emailController.text,
-          role: _selectedRole,
+  Widget _buildEmailDisplay(BuildContext context) {
+    return Text(
+      'Email: ${_emailController.text}',
+      style: Theme.of(context).textTheme.titleMedium,
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedRole,
+      decoration: const InputDecoration(
+        labelText: 'Role',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.person),
+      ),
+      items: _availableRoles.map((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
         );
-
-        final result = await ref.read(userNotifierProvider.notifier).updateUser(updatedUser);
-
-        if (mounted) {
-          if (result) {
-            _log.info('User role updated successfully');
-            context.pop();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to update user role')),
-            );
-          }
-        }
-      } catch (e) {
-        _log.warning('Error updating user: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
-        }
-      } finally {
-        if (mounted) {
+      }).toList(),
+      onChanged: (newValue) {
+        if (newValue != null) {
           setState(() {
-            _isLoading = false;
+            _selectedRole = newValue;
+            _log.info('Role changed to: $_selectedRole');
           });
         }
-      }
+      },
+    );
+  }
+
+  Widget _buildUpdateButton() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
+    
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _updateUser,
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('Update User Role'),
+        ),
+      ),
+    );
   }
 }
 

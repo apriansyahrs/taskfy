@@ -49,9 +49,8 @@ class AuthService {
         ...userData,
         'id': session.user.id,
         'email': session.user.email!,
-        'permissions': userData['permissions'] ?? _getDefaultPermissions(userData['role'] ?? 'pegawai'),
+        'permissions': _getDefaultPermissions(userData['role'] ?? 'pegawai'),
         'is_active': userData['is_active'] ?? true,
-        'last_active': DateTime.now().toIso8601String(),
       });
     } on SocketException catch (e) {
       LoggerUtil.error('Network error during _getUserFromSession', tag: 'AUTH', error: e);
@@ -133,8 +132,7 @@ class AuthService {
           'email': email,
           'role': role,
           'is_active': true,
-          'last_active': DateTime.now().toIso8601String(),
-          'permissions': _getDefaultPermissions(role),
+          // Removed 'permissions' field as it doesn't exist in the database
         });
         _log.info('New user signed up: $email with role: $role');
         return await _getUserFromSession(response.session!);

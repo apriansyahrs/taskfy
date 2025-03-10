@@ -56,7 +56,7 @@ class ProjectList extends ConsumerWidget {
 
     // Check if user has permission to edit/delete projects
     final bool canEditDelete = user != null && 
-        (user.role == 'admin' || user.role == 'manager' || user.role == 'direksi');
+        (user.role == 'admin' || user.role == 'manager');
 
     return projectsAsyncValue.when(
       data: (projects) {
