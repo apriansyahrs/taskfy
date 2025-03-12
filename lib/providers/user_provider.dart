@@ -34,29 +34,38 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
 
   Future<void> createUser(taskfy_user.User user, String password) async {
     try {
-      final authResponse = await _supabase.auth.signUp(
-        email: user.email,
-        password: password,
+      final authResponse = await _supabase.auth.admin.createUser(
+        supabase.AdminUserAttributes(
+          email: user.email,
+          password: password,
+          emailConfirm: true,
+        ),
       );
 
       if (authResponse.user == null) {
         throw Exception('Failed to create user in Auth');
       }
 
-      List<String> permissions = user.permissions.isNotEmpty 
-          ? user.permissions 
+      List<String> permissions = user.permissions.isNotEmpty
+          ? user.permissions
           : _getDefaultPermissions(user.role);
-      
+
       final newUser = user.copyWith(
         id: authResponse.user!.id,
         permissions: permissions,
         isActive: true,
       );
 
-      await _supabase.from('users').insert(newUser.toJson());
+      // Only insert fields that exist in the database schema
+      await _supabase.from('users').insert({
+        'id': newUser.id,
+        'email': newUser.email,
+        'role': newUser.role,
+      });
 
       state = AsyncValue.data([...state.value ?? [], newUser]);
-      _log.info('User created successfully: ${newUser.email} with role: ${newUser.role}');
+      _log.info(
+          'User created successfully: ${newUser.email} with role: ${newUser.role}');
     } catch (e) {
       if (e is supabase.AuthException) {
         _log.warning('Auth error creating user: ${e.message}');
@@ -74,7 +83,7 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
   Future<bool> updateUser(taskfy_user.User user) async {
     try {
       _log.info('Attempting to update user role to: ${user.role}');
-      
+
       // Update both role and permissions in the database
       await _supabase.from('users').update({
         'role': user.role,
@@ -85,22 +94,22 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
           await _supabase.from('users').select().eq('id', user.id).single();
       _log.info('Fetched updated user data: $updatedUserData');
 
-    
       // Create updated user with permissions calculated from role
       final updatedUser = taskfy_user.User.fromJson({
         ...updatedUserData,
         'role': user.role,
       });
-      
-      _log.info('Updated user role: ${updatedUser.role} with permissions: ${updatedUser.permissions}');
-      
+
+      _log.info(
+          'Updated user role: ${updatedUser.role} with permissions: ${updatedUser.permissions}');
+
       // Update state with the new user data
-      state = AsyncValue.data(state.value
-              ?.map((u) => u.id == user.id ? updatedUser : u)
-              .toList() ??
-          []);
-          
-      _log.info('User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
+      state = AsyncValue.data(
+          state.value?.map((u) => u.id == user.id ? updatedUser : u).toList() ??
+              []);
+
+      _log.info(
+          'User role updated successfully for user ID: ${user.id}. New role: ${updatedUser.role}');
       return true;
     } catch (e) {
       _log.warning('Error updating user role: $e');
@@ -134,9 +143,7 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
   List<String> _getDefaultPermissions(String role) {
     switch (role) {
       case 'admin':
-        return [
-          'view_reports'
-        ];
+        return ['view_reports'];
       case 'manager':
         return [
           'create_project',
@@ -156,9 +163,7 @@ class UserNotifier extends StateNotifier<AsyncValue<List<taskfy_user.User>>> {
           'update_routine_status'
         ];
       case 'direksi':
-        return [
-          'view_reports'
-        ];
+        return ['view_reports'];
       default:
         return [];
     }
