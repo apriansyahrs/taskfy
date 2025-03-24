@@ -22,11 +22,14 @@ import 'package:taskfy/screens/my_projects_screen.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/screens/reset_password_screen.dart';
 import 'package:taskfy/screens/my_routines_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-
-  return GoRouter(
+  final authLoading = ref.watch(authLoadingProvider);
+  
+  // Create a router notifier to observe path changes
+  final router = GoRouter(
     routes: [
       GoRoute(
         path: '/',
@@ -179,34 +182,72 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
     ],
+    // Add observer to track navigation
+    observers: [
+      GoRouterObserver(ref),
+    ],
     redirect: (context, state) {
-      final isLoggedIn = authState.value != null;
-      final isLoggingIn = state.uri.path == '/';
-      final isForgotPassword = state.uri.path == '/forgot-password';
-      final isResetPassword = state.uri.path == '/reset-password';
+      // Store current location for debugging
+      final currentLocation = state.matchedLocation;
+      debugPrint('Navigating to: $currentLocation, Auth loading: $authLoading');
+      
+      // Skip redirects during initial loading/app refresh
+      if (authLoading) {
+        // Try to restore from stored path if available
+        final storedPath = ref.read(lastPathProvider);
+        if (storedPath != null && storedPath != currentLocation) {
+          debugPrint('Restoring path to: $storedPath');
+          return storedPath;
+        }
+        return null;
+      }
 
-      if (!isLoggedIn && !isLoggingIn && !isForgotPassword && !isResetPassword) {
+      final isLoggedIn = authState.value != null;
+      final isAuthRoute = state.matchedLocation == '/' || 
+                          state.matchedLocation == '/forgot-password' || 
+                          state.matchedLocation == '/reset-password';
+
+      // Handle authentication redirects
+      if (!isLoggedIn && !isAuthRoute) {
+        debugPrint('Not logged in, redirecting to login');
         return '/';
       }
 
-      if (isLoggedIn && (isLoggingIn || isForgotPassword || isResetPassword)) {
+      if (isLoggedIn && isAuthRoute) {
+        // Check if we have a stored path to restore
+        final storedPath = ref.read(lastPathProvider);
+        if (storedPath != null && storedPath != AppConstants.dashboardRoute) {
+          debugPrint('Logged in, restoring to: $storedPath');
+          return storedPath;
+        }
+        
+        debugPrint('Logged in, redirecting to dashboard');
         return AppConstants.dashboardRoute;
       }
 
+      // Handle permission checks
       final userRole = authState.value?.role;
       if (isLoggedIn && userRole != null) {
-        if (state.uri.path.startsWith(AppConstants.usersRoute) && !_hasPermission(AppConstants.permissionManageUsers, userRole)) {
+        // Permission checks (unchanged)
+        if (state.matchedLocation.startsWith(AppConstants.usersRoute) && 
+            !_hasPermission(AppConstants.permissionManageUsers, userRole)) {
           return AppConstants.dashboardRoute;
         }
-        if (state.uri.path == AppConstants.reportsRoute && !_hasPermission(AppConstants.permissionViewReports, userRole)) {
+        
+        if (state.matchedLocation == AppConstants.reportsRoute && 
+            !_hasPermission(AppConstants.permissionViewReports, userRole)) {
           return AppConstants.dashboardRoute;
         }
-        if ((state.uri.path == '${AppConstants.routinesRoute}/create' || state.uri.path == '${AppConstants.projectsRoute}/create') && 
-            !_hasPermission(AppConstants.permissionCreateRoutine, userRole) && !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
+        
+        if ((state.matchedLocation == '${AppConstants.routinesRoute}/create' || 
+             state.matchedLocation == '${AppConstants.projectsRoute}/create') && 
+            !_hasPermission(AppConstants.permissionCreateRoutine, userRole) && 
+            !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
           return AppConstants.dashboardRoute;
         }
       }
 
+      // No redirection needed
       return null;
     },
     errorBuilder: (context, state) => Scaffold(
@@ -215,7 +256,53 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ),
   );
+  
+  return router;
 });
+
+// Add router observer to track and store paths
+class GoRouterObserver extends NavigatorObserver {
+  final Ref ref;
+  
+  GoRouterObserver(this.ref);
+  
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route.settings.name != null) {
+      _storePath(route.settings.name!);
+    }
+    super.didPush(route, previousRoute);
+  }
+  
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (newRoute?.settings.name != null) {
+      _storePath(newRoute!.settings.name!);
+    }
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+  
+  void _storePath(String path) {
+    // Don't store auth routes
+    if (path == '/' || path == '/forgot-password' || path == '/reset-password') {
+      return;
+    }
+    
+    // Store the path
+    ref.read(lastPathProvider.notifier).state = path;
+    // Also persist to local storage for recovery after refresh
+    _persistPath(path);
+  }
+  
+  Future<void> _persistPath(String path) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_path', path);
+    } catch (e) {
+      debugPrint('Error storing path: $e');
+    }
+  }
+}
 
 // Use the permission provider instead of hardcoded role-based permissions
 bool _hasPermission(String permission, String role) {

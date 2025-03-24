@@ -9,18 +9,35 @@ import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/providers/locale_provider.dart';
 import 'package:taskfy/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:taskfy/state/app_state.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupServiceLocator();
   await getIt<SupabaseClientWrapper>().initialize();
   setupLogging();
-  runApp(ProviderScope(
-    overrides: [
-      authServiceProvider.overrideWithValue(getIt<AuthService>()),
-    ],
-    child: const MyApp(),
-  ));
+  
+  // Attempt to restore last path
+  String? initialPath;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    initialPath = prefs.getString('last_path');
+  } catch (e) {
+    debugPrint('Error loading stored path: $e');
+  }
+  
+  runApp(
+    ProviderScope(
+      overrides: [
+        authServiceProvider.overrideWithValue(getIt<AuthService>()),
+        // Initialize last path provider with stored value
+        if (initialPath != null)
+          lastPathProvider.overrideWith((ref) => initialPath),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
