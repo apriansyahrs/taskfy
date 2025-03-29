@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -23,36 +24,13 @@ class CustomTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
+      decoration: StyleGuide.inputDecoration(
         labelText: labelText,
-        prefixIcon: Icon(prefixIcon, color: Theme.of(context).colorScheme.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
-        ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
-        labelStyle: TextStyle(
-          fontFamily: 'Inter',
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        prefixIcon: prefixIcon,
       ),
       style: TextStyle(
         fontFamily: 'Inter',
-        color: Theme.of(context).colorScheme.onSurface,
+        color: ThemeConfig.textPrimary,
       ),
       obscureText: obscureText,
       validator: validator,

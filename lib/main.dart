@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:taskfy/router.dart';
-import 'package:taskfy/config/theme_config.dart';
 import 'package:taskfy/utils/error_handler.dart';
 import 'package:taskfy/services/service_locator.dart';
 import 'package:taskfy/services/supabase_client.dart';
 import 'package:taskfy/providers/locale_provider.dart';
 import 'package:taskfy/services/auth_service.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,9 +36,8 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
         title: 'Task Manager',
-        theme: ThemeConfig.lightTheme,
-        darkTheme: ThemeConfig.darkTheme,
         themeMode: themeMode,
+        theme: ThemeConfig.theme,
         routerConfig: router,
         locale: locale,
         localizationsDelegates: const [

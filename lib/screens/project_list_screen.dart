@@ -297,12 +297,6 @@ class _ProjectTable extends StatelessWidget {
                 tooltip: 'View Project Details',
                 onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}'),
               ),
-              if (permissions.contains(AppConstants.permissionEditProject))
-                IconButton(
-                  icon: Icon(Icons.edit),
-                  tooltip: 'Edit Project',
-                  onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}/edit'),
-                ),
               if (permissions.contains(AppConstants.permissionDeleteProject))
                 IconButton(
                   icon: Icon(Icons.delete),

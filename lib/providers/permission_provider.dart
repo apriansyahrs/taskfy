@@ -32,12 +32,64 @@ final permissionProvider =
   final user = authState.value;
   final permissionNotifier = PermissionNotifier();
 
-  if (user != null && user.permissions.isNotEmpty) {
+  if (user != null) {
     _log.info(
         'Setting permissions for user ${user.email} with role ${user.role}');
-    permissionNotifier.setPermissionsFromUser(user.permissions);
+    
+    // Default permissions based on user role
+    List<String> rolePermissions = [];
+    
+    // Ensure admin always has user management permissions
+    if (user.role == AppConstants.roleAdmin) {
+      _log.info('Setting admin permissions');
+      rolePermissions = [
+        AppConstants.permissionCreateUser,
+        AppConstants.permissionReadUser,
+        AppConstants.permissionUpdateUser,
+        AppConstants.permissionDeleteUser,
+      ];
+    } else if (user.role == AppConstants.roleManager) {
+      rolePermissions = [
+        AppConstants.permissionCreateProject,
+        AppConstants.permissionReadProject,
+        AppConstants.permissionUpdateProject,
+        AppConstants.permissionDeleteProject,
+        AppConstants.permissionCreateTask,
+        AppConstants.permissionReadTask,
+        AppConstants.permissionUpdateTask,
+        AppConstants.permissionDeleteTask,
+        AppConstants.permissionChangeTaskStatus,
+        AppConstants.permissionCreateRoutine,
+        AppConstants.permissionReadRoutine,
+        AppConstants.permissionUpdateRoutine,
+        AppConstants.permissionDeleteRoutine,
+        AppConstants.permissionChangeRoutineStatus,
+        AppConstants.permissionViewReports,
+      ];
+    } else if (user.role == AppConstants.roleEmployee) {
+      rolePermissions = [
+        AppConstants.permissionReadProject,
+        AppConstants.permissionReadTask,
+        AppConstants.permissionChangeTaskStatus,
+        AppConstants.permissionReadRoutine,
+        AppConstants.permissionChangeRoutineStatus,
+      ];
+    } else if (user.role == AppConstants.roleExecutive) {
+      rolePermissions = [
+        AppConstants.permissionViewReports,
+      ];
+    }
+    
+    // If user has specific permissions, use those instead
+    if (user.permissions.isNotEmpty) {
+      permissionNotifier.setPermissionsFromUser(user.permissions);
+    } else {
+      permissionNotifier.setPermissionsFromUser(rolePermissions);
+    }
+    
+    _log.info('Permissions set: ${permissionNotifier.state}');
   } else {
-    _log.info('No user or permissions found, setting empty permissions');
+    _log.info('No user found, setting empty permissions');
     permissionNotifier.setPermissionsFromUser([]);
   }
 
@@ -47,7 +99,9 @@ final permissionProvider =
 // Convenience providers for common permission checks
 final canManageUsersProvider = Provider<bool>((ref) {
   final permissions = ref.watch(permissionProvider);
-  return permissions.contains(AppConstants.permissionManageUsers);
+  return permissions.contains(AppConstants.permissionCreateUser) ||
+         permissions.contains(AppConstants.permissionUpdateUser) ||
+         permissions.contains(AppConstants.permissionDeleteUser);
 });
 
 final canViewReportsProvider = Provider<bool>((ref) {
@@ -58,13 +112,20 @@ final canViewReportsProvider = Provider<bool>((ref) {
 final canManageProjectsProvider = Provider<bool>((ref) {
   final permissions = ref.watch(permissionProvider);
   return permissions.contains(AppConstants.permissionCreateProject) ||
-      permissions.contains(AppConstants.permissionEditProject) ||
+      permissions.contains(AppConstants.permissionUpdateProject) ||
       permissions.contains(AppConstants.permissionDeleteProject);
 });
 
 final canManageRoutinesProvider = Provider<bool>((ref) {
   final permissions = ref.watch(permissionProvider);
   return permissions.contains(AppConstants.permissionCreateRoutine) ||
-      permissions.contains(AppConstants.permissionEditRoutine) ||
+      permissions.contains(AppConstants.permissionUpdateRoutine) ||
       permissions.contains(AppConstants.permissionDeleteRoutine);
+});
+
+final canManageTasksProvider = Provider<bool>((ref) {
+  final permissions = ref.watch(permissionProvider);
+  return permissions.contains(AppConstants.permissionCreateTask) ||
+      permissions.contains(AppConstants.permissionUpdateTask) ||
+      permissions.contains(AppConstants.permissionDeleteTask);
 });

@@ -52,46 +52,56 @@ class RoutineListWidget extends ConsumerWidget {
     final userEmail = ref.watch(authProvider).value?.email;
     final routinesAsyncValue = ref.watch(routineListStreamProvider(userEmail));
 
-    return routinesAsyncValue.when(
-      data: (routines) {
-        if (limit != null && routines.length > limit!) {
-          routines = routines.sublist(0, limit);
-        }
-        return ListView.builder(
-          itemCount: routines.length,
-          itemBuilder: (context, index) {
-            final routine = routines[index];
-            return ListTile(
-              title: Text(routine.title),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Status: ${routine.status}'),
-                  Text('Due: ${routine.dueDate.toString()}'),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => context.go('/routines/${routine.id}/edit'),
-                    tooltip: 'Edit Routine',
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white, // Force white background
+      ),
+      child: routinesAsyncValue.when(
+        data: (routines) {
+          if (limit != null && routines.length > limit!) {
+            routines = routines.sublist(0, limit);
+          }
+          return ListView.builder(
+            itemCount: routines.length,
+            itemBuilder: (context, index) {
+              final routine = routines[index];
+              return Card(
+                color: Colors.white, // Make each list item explicitly white
+                elevation: 1, // Small elevation for visual separation
+                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                child: ListTile(
+                  title: Text(routine.title),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Status: ${routine.status}'),
+                      Text('Due: ${routine.dueDate.toString()}'),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _showDeleteConfirmation(context, ref, routine.id),
-                    tooltip: 'Delete Routine',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => context.go('/routines/${routine.id}/edit'),
+                        tooltip: 'Edit Routine',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _showDeleteConfirmation(context, ref, routine.id),
+                        tooltip: 'Delete Routine',
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              onTap: () => context.go('/routines/${routine.id}'),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+                  onTap: () => context.go('/routines/${routine.id}'),
+                ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
     );
   }
 }

@@ -59,13 +59,15 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
             onPressed: () => context.go('/users/create'),
           ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildUserStats(usersAsyncValue),
-          const SizedBox(height: 24),
-          _buildUserList(context, usersAsyncValue, permissions),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildUserStats(usersAsyncValue),
+            const SizedBox(height: 24),
+            _buildUserList(context, usersAsyncValue, permissions),
+          ],
+        ),
       ),
     );
   }
@@ -162,16 +164,18 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
       builder: (context, constraints) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              columnSpacing: 16,
-              columns: [
-                DataColumn(label: Text(l10n.userLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.roleLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text(l10n.actionsLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
-              ],
-              rows: users.map((user) => _buildUserRow(context, user, permissions)).toList(),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                columnSpacing: 16,
+                columns: [
+                  DataColumn(label: Text(l10n.userLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text(l10n.roleLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text(l10n.actionsLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                rows: users.map((user) => _buildUserRow(context, user, permissions)).toList(),
+              ),
             ),
           ),
         );
@@ -225,7 +229,7 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, BoxConstraints constraints) {
-    final cardWidth = (constraints.maxWidth - (3 * 16)) / 4;
+    final cardWidth = (constraints.maxWidth - (4 * 16)) / 5; // Changed divisor to 5 and spacing count to 4
     return SizedBox(
       width: cardWidth,
       child: StatCard(

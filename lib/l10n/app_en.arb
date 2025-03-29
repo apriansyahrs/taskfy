@@ -65,7 +65,7 @@
     "actionsLabel": "Actions",
     "editRoutineTooltip": "Edit Routine",
     "deleteRoutineTooltip": "Delete Routine",
-    "userManagementTitle": "User Management",
+    "userManagementTitle": "User",
     "addUserButton": "Add User",
     "totalUsersTitle": "Total Users",
     "adminsTitle": "Admins",

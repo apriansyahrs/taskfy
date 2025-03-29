@@ -47,19 +47,34 @@ class AppConstants {
   static const String roleExecutive = 'direksi';
 
   // Permissions
-  static const String permissionManageUsers = 'manage_users';
-  static const String permissionViewReports = 'view_reports';
+  // User permissions
+  static const String permissionCreateUser = 'create_user';
+  static const String permissionReadUser = 'read_user';
+  static const String permissionUpdateUser = 'update_user';
+  static const String permissionDeleteUser = 'delete_user';
+  
+  // Project permissions
   static const String permissionCreateProject = 'create_project';
-  static const String permissionEditProject = 'edit_project';
+  static const String permissionReadProject = 'read_project';
+  static const String permissionUpdateProject = 'update_project';
   static const String permissionDeleteProject = 'delete_project';
-  static const String permissionCreateRoutine = 'create_routine';
-  static const String permissionEditRoutine = 'edit_routine';
-  static const String permissionDeleteRoutine = 'delete_routine';
-  static const String permissionUpdateRoutineStatus = 'update_routine_status';
-  static const String permissionUpdateProjectStatus = 'update_project_status';
+  
+  // Task permissions
   static const String permissionCreateTask = 'create_task';
-  static const String permissionEditTask = 'edit_task';
+  static const String permissionReadTask = 'read_task';
+  static const String permissionUpdateTask = 'update_task';
   static const String permissionDeleteTask = 'delete_task';
+  static const String permissionChangeTaskStatus = 'change_task_status';
+  
+  // Routine permissions
+  static const String permissionCreateRoutine = 'create_routine';
+  static const String permissionReadRoutine = 'read_routine';
+  static const String permissionUpdateRoutine = 'update_routine';
+  static const String permissionDeleteRoutine = 'delete_routine';
+  static const String permissionChangeRoutineStatus = 'change_routine_status';
+  
+  // Report permissions
+  static const String permissionViewReports = 'view_reports';
 
   // Error messages
   static const String genericErrorMessage = 'An unexpected error occurred. Please try again.';

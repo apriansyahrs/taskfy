@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class StatCard extends StatelessWidget {
   final String title;
@@ -14,7 +15,7 @@ class StatCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.color, // This color parameter is used for the icon background
     this.subtitle,
     this.onTap,
   });
@@ -22,11 +23,15 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 600;
+    final isSmallScreen = size.width < StyleGuide.breakpointMobile;
     
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)),
+      color: ThemeConfig.card, // Explicitly set card background color
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge),
+        side: BorderSide(color: ThemeConfig.border.withOpacity(0.5)), // Optional border
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge),
@@ -41,48 +46,39 @@ class StatCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: isSmallScreen ? 14 : 16,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: StyleGuide.subtitleStyle,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
-                    padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
+                    padding: EdgeInsets.all(isSmallScreen ? StyleGuide.paddingTiny : StyleGuide.paddingSmall),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(StyleGuide.borderRadiusSmall),
                     ),
                     child: Icon(
                       icon,
-                      color: color,
+                      color: color, // Using the passed color parameter for the icon
                       size: isSmallScreen ? 16 : 18,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: isSmallScreen ? 12 : 16),
+              SizedBox(height: isSmallScreen ? StyleGuide.spacingSmall : StyleGuide.spacingMedium),
               Text(
                 value,
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: isSmallScreen ? 24 : 28,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: ThemeConfig.textPrimary, // Using textPrimary for the value
                 ),
               ),
               if (subtitle != null) ...[                
-                SizedBox(height: isSmallScreen ? 2 : 4),
+                SizedBox(height: isSmallScreen ? StyleGuide.spacingTiny : StyleGuide.spacingSmall),
                 Text(
                   subtitle!,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: isSmallScreen ? 12 : 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  style: StyleGuide.smallLabelStyle,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

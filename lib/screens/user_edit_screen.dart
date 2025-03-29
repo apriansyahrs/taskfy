@@ -111,6 +111,7 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   @override
   Widget build(BuildContext context) {
     final userAsyncValue = ref.watch(userProvider(widget.userId));
+
     return AppLayout(
       title: 'Task Manager',
       pageTitle: 'Edit User Role',
@@ -121,29 +122,44 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
           onPressed: _isLoading ? null : _updateUser,
         ),
       ],
-      child: userAsyncValue.when(
-        data: (taskfy_user.User? user) {
-          if (user == null) {
-            return const Center(child: Text('User not found'));
-          }
-          _initializeUserData(user);
-          return _buildUserEditForm(context);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: userAsyncValue.when(
+              data: (taskfy_user.User? user) {
+                if (user == null) {
+                  return const Center(child: Text('User not found'));
+                }
+                _initializeUserData(user);
+                return _buildUserEditForm(context);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildUserEditForm(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+
+    return Card(
+      elevation: 2,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Edit User',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 24),
               _buildEmailDisplay(context),
               const SizedBox(height: 16),
               _buildRoleDropdown(),
@@ -157,19 +173,42 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
   }
 
   Widget _buildEmailDisplay(BuildContext context) {
-    return Text(
-      'Email: ${_emailController.text}',
-      style: Theme.of(context).textTheme.titleMedium,
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.email,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              _emailController.text,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildRoleDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedRole,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Role',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.person),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        prefixIcon: const Icon(Icons.person),
       ),
       items: _availableRoles.map((String value) {
         return DropdownMenuItem<String>(
@@ -192,15 +231,18 @@ class _UserEditScreenState extends ConsumerState<UserEditScreen> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: _updateUser,
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('Update User Role'),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
+        child: const Text('Update User Role'),
       ),
     );
   }

@@ -22,9 +22,24 @@ import 'package:taskfy/screens/my_projects_screen.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/screens/reset_password_screen.dart';
 import 'package:taskfy/screens/my_routines_screen.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('Router');
+
+// Create a provider to track if we're refreshing/initializing
+final initialLoadingProvider = StateProvider<bool>((ref) => true);
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  // This will track whether we're in the initial loading phase
+  final isInitialLoading = ref.watch(initialLoadingProvider);
+
+  // When authState changes from loading to a value, mark initial loading as complete
+  ref.listen(authStateProvider, (previous, next) {
+    if (previous?.isLoading == true && next.isLoading == false) {
+      ref.read(initialLoadingProvider.notifier).state = false;
+    }
+  });
 
   return GoRouter(
     routes: [
@@ -180,33 +195,56 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
+      // Get the current loading state
+      final isLoading = isInitialLoading || authState.isLoading;
+
+      // During initial loading or auth state loading, don't redirect
+      if (isLoading) {
+        _log.fine('Auth state is still loading, no redirect');
+        return null;
+      }
+
       final isLoggedIn = authState.value != null;
       final isLoggingIn = state.uri.path == '/';
       final isForgotPassword = state.uri.path == '/forgot-password';
       final isResetPassword = state.uri.path == '/reset-password';
 
-      if (!isLoggedIn && !isLoggingIn && !isForgotPassword && !isResetPassword) {
-        return '/';
+      _log.fine('Current path: ${state.uri.path}, isLoggedIn: $isLoggedIn');
+
+      // Handle authentication redirects
+      if (!isLoggedIn) {
+        // If not logged in and not already on auth pages, redirect to login
+        if (!isLoggingIn && !isForgotPassword && !isResetPassword) {
+          final currentPath = state.uri.toString();
+          _log.info('User not logged in, redirecting to login from: $currentPath');
+          return '/';
+        }
+        return null;
       }
 
-      if (isLoggedIn && (isLoggingIn || isForgotPassword || isResetPassword)) {
+      // User is logged in
+      if (isLoggingIn || isForgotPassword || isResetPassword) {
+        _log.info('User logged in but on auth page, redirecting to dashboard');
         return AppConstants.dashboardRoute;
       }
 
+      // Handle permission checks for specific routes
       final userRole = authState.value?.role;
-      if (isLoggedIn && userRole != null) {
-        if (state.uri.path.startsWith(AppConstants.usersRoute) && !_hasPermission(AppConstants.permissionManageUsers, userRole)) {
+      if (userRole != null) {
+        if (state.uri.path == AppConstants.reportsRoute &&
+            !_hasPermission(AppConstants.permissionViewReports, userRole)) {
           return AppConstants.dashboardRoute;
         }
-        if (state.uri.path == AppConstants.reportsRoute && !_hasPermission(AppConstants.permissionViewReports, userRole)) {
-          return AppConstants.dashboardRoute;
-        }
-        if ((state.uri.path == '${AppConstants.routinesRoute}/create' || state.uri.path == '${AppConstants.projectsRoute}/create') && 
-            !_hasPermission(AppConstants.permissionCreateRoutine, userRole) && !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
+
+        if ((state.uri.path == '${AppConstants.routinesRoute}/create' ||
+                state.uri.path == '${AppConstants.projectsRoute}/create') &&
+            !_hasPermission(AppConstants.permissionCreateRoutine, userRole) &&
+            !_hasPermission(AppConstants.permissionCreateProject, userRole)) {
           return AppConstants.dashboardRoute;
         }
       }
 
+      // User is logged in and has permission, stay on current page
       return null;
     },
     errorBuilder: (context, state) => Scaffold(
@@ -220,28 +258,41 @@ final routerProvider = Provider<GoRouter>((ref) {
 // Use the permission provider instead of hardcoded role-based permissions
 bool _hasPermission(String permission, String role) {
   switch (role) {
+    case AppConstants.roleAdmin:
+      return [
+        AppConstants.permissionCreateUser,
+        AppConstants.permissionReadUser,
+        AppConstants.permissionUpdateUser,
+        AppConstants.permissionDeleteUser,
+      ].contains(permission);
     case AppConstants.roleManager:
       return [
         AppConstants.permissionCreateProject,
-        AppConstants.permissionEditProject,
+        AppConstants.permissionReadProject,
+        AppConstants.permissionUpdateProject,
         AppConstants.permissionDeleteProject,
+        AppConstants.permissionCreateTask,
+        AppConstants.permissionReadTask,
+        AppConstants.permissionUpdateTask,
+        AppConstants.permissionDeleteTask,
+        AppConstants.permissionChangeTaskStatus,
         AppConstants.permissionCreateRoutine,
-        AppConstants.permissionEditRoutine,
+        AppConstants.permissionReadRoutine,
+        AppConstants.permissionUpdateRoutine,
         AppConstants.permissionDeleteRoutine,
+        AppConstants.permissionChangeRoutineStatus,
         AppConstants.permissionViewReports,
-        'monitor_progress'
       ].contains(permission);
     case AppConstants.roleEmployee:
       return [
-        'view_assigned_projects',
-        'view_assigned_routines',
-        AppConstants.permissionUpdateRoutineStatus,
-        AppConstants.permissionUpdateProjectStatus
+        AppConstants.permissionReadProject,
+        AppConstants.permissionReadTask,
+        AppConstants.permissionChangeTaskStatus,
+        AppConstants.permissionReadRoutine,
+        AppConstants.permissionChangeRoutineStatus,
       ].contains(permission);
     case AppConstants.roleExecutive:
       return [AppConstants.permissionViewReports].contains(permission);
-    case AppConstants.roleAdmin:
-      return [AppConstants.permissionManageUsers].contains(permission);
     default:
       return false;
   }

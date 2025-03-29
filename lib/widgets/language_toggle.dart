@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:taskfy/providers/locale_provider.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class LanguageToggle extends ConsumerWidget {
   const LanguageToggle({super.key});
@@ -15,6 +16,8 @@ class LanguageToggle extends ConsumerWidget {
         locale.languageCode.toUpperCase(),
         style: const TextStyle(
           fontWeight: FontWeight.bold,
+          color: ThemeConfig.accentColor,
+          fontSize: 14,
         ),
       ),
       onPressed: () {

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/project_providers.dart';
 import 'package:taskfy/providers/auth_provider.dart';
+import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/config/constants.dart';
 
 class ProjectList extends ConsumerWidget {
   final int? limit;
@@ -53,10 +55,11 @@ class ProjectList extends ConsumerWidget {
     final user = authState.value;
     final userEmail = user?.email;
     final projectsAsyncValue = ref.watch(projectListStreamProvider(userEmail));
-
-    // Check if user has permission to edit/delete projects
-    final bool canEditDelete = user != null && 
-        (user.role == 'admin' || user.role == 'manager');
+    
+    // Check permissions using the permission provider
+    final permissions = ref.watch(permissionProvider);
+    final bool canEdit = permissions.contains(AppConstants.permissionUpdateProject);
+    final bool canDelete = permissions.contains(AppConstants.permissionDeleteProject);
 
     return projectsAsyncValue.when(
       data: (projects) {
@@ -75,12 +78,12 @@ class ProjectList extends ConsumerWidget {
                 children: [
                   Text('${project.completion.toStringAsFixed(1)}%'),
                   const SizedBox(width: 8),
-                  if (canEditDelete) IconButton(
+                  if (canEdit) IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () => context.go('/projects/${project.id}/edit'),
                     tooltip: 'Edit Project',
                   ),
-                  if (canEditDelete) IconButton(
+                  if (canDelete) IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () => _showDeleteConfirmation(context, ref, project.id),
                     tooltip: 'Delete Project',

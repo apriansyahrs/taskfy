@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class CustomErrorWidget extends StatelessWidget {
   final String message;
@@ -12,11 +13,15 @@ class CustomErrorWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, color: Colors.red, size: 48),
+          Icon(
+            Icons.error_outline,
+            color: ThemeConfig.errorColor,
+            size: 48
+          ),
           SizedBox(height: StyleGuide.spacingLarge),
           Text(
             'An error occurred',
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
           SizedBox(height: StyleGuide.spacingSmall),
           Text(
@@ -29,7 +34,7 @@ class CustomErrorWidget extends StatelessWidget {
             onPressed: () {
               // Implement retry logic here
             },
-            child: Text('Retry'),
+            child: const Text('Retry'),
           ),
         ],
       ),

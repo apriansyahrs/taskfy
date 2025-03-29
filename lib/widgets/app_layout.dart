@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:taskfy/config/style_guide.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/providers/permission_provider.dart';
+import 'package:taskfy/config/constants.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
+import 'package:logging/logging.dart';
 
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+final _log = Logger('AppLayout');
 
 class AppLayout extends ConsumerWidget {
   final String title;
   final String pageTitle;
-  final String? subtitle;
   final Widget child;
   final List<Widget>? actions;
 
@@ -19,389 +21,423 @@ class AppLayout extends ConsumerWidget {
     super.key,
     required this.title,
     required this.pageTitle,
-    this.subtitle,
     required this.child,
     this.actions,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWideScreen = constraints.maxWidth > StyleGuide.breakpointTablet;
-        return Scaffold(
-          drawer: isWideScreen ? null : _buildSidebar(context),
-          body: Row(
-            children: [
-              if (isWideScreen) _buildSidebar(context),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildAppBar(context, isWideScreen),
-                    Expanded(
-                      child: Container(
-                        color: Theme.of(context).colorScheme.surface,
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.all(isWideScreen ? StyleGuide.paddingLarge : StyleGuide.paddingMedium),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeader(context),
-                              SizedBox(height: isWideScreen ? 24 : 16),
-                              child,
-                            ],
-                          ),
-                        ),
-                      ),
+    final userState = ref.watch(authProvider);
+    final user = userState.value;
+    final isSmallScreen = MediaQuery.of(context).size.width < StyleGuide.breakpointDesktop;
+
+    return Scaffold(
+      backgroundColor: ThemeConfig.background,
+      appBar: isSmallScreen
+          ? AppBar(
+              backgroundColor: ThemeConfig.background,
+              title: Text(pageTitle),
+              iconTheme: const IconThemeData(color: ThemeConfig.textPrimary),
+              titleTextStyle: StyleGuide.titleStyle,
+              actions: [
+                if (actions != null) ...actions!,
+                SizedBox(width: StyleGuide.spacingSmall),
+                _buildUserMenu(
+                    context, ref, user?.email ?? '', user?.role ?? ''),
+              ],
+            )
+          : null,
+      drawer: isSmallScreen
+          ? _buildSidePanel(context, ref, user?.email ?? '', user?.role ?? '')
+          : null,
+      body: Row(
+        children: [
+          if (!isSmallScreen)
+            _buildSidePanel(context, ref, user?.email ?? '', user?.role ?? ''),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!isSmallScreen)
+                  _buildTopBar(context, ref, pageTitle, user?.email ?? '',
+                      user?.role ?? ''),
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.all(StyleGuide.paddingMedium),
+                    color: ThemeConfig.background,
+                    child: Container(
+                      decoration: StyleGuide.cardDecoration(),
+                      padding: EdgeInsets.all(StyleGuide.paddingMedium),
+                      child: child,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildAppBar(BuildContext context, bool isWideScreen) {
+  Widget _buildTopBar(BuildContext context, WidgetRef ref, String title,
+      String email, String role) {
+    // Google Play Console style top bar with more playful elements
     return Container(
       height: 64,
-      padding: EdgeInsets.symmetric(horizontal: isWideScreen ? 24.0 : 16.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFD),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
+            color: Color(0x0A000000),
             blurRadius: 2,
-            offset: const Offset(0, 1),
+            offset: Offset(0, 1),
           ),
         ],
       ),
       child: Row(
         children: [
-          if (!isWideScreen)
-            IconButton(
-              icon: Icon(Icons.menu, color: Theme.of(context).colorScheme.onSurface),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              style: IconButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-              ),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF202124),
             ),
+          ),
           const Spacer(),
-          _buildUserMenu(context),
+          if (actions != null) ...actions!,
+          const SizedBox(width: 16),
+          _buildUserMenu(context, ref, email, role),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  pageTitle,
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                if (subtitle != null) ...[                  
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle!,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ],
-            ),
-            if (actions != null)
-              Row(
-                children: actions!,
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUserMenu(BuildContext context) {
-    return Consumer(builder: (context, ref, _) {
-      final userState = ref.watch(authProvider);
-      final user = userState.value;
-
-      return PopupMenuButton<String>(
-        offset: const Offset(0, 40),
-        position: PopupMenuPosition.under,
-        elevation: 3,
-        surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              child: Text(
-                user?.email.substring(0, 1).toUpperCase() ?? 'U',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              user?.email ?? 'User',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontFamily: 'Inter',
-              ),
-            ),
-            Icon(
-              Icons.arrow_drop_down,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ],
-        ),
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            value: 'logout',
-            child: Row(
-              children: [
-                Icon(Icons.logout, color: Theme.of(context).colorScheme.onSurface),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.logoutButton,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        onSelected: (value) async {
-          if (value == 'logout') {
-            await ref.read(authProvider.notifier).signOut();
-            if (context.mounted) {
-              context.go('/');
-            }
-          }
-        },
-      );
-    });
-  }
-  Widget _buildSidebar(BuildContext context) {
-    return Consumer(builder: (context, ref, _) {
-      final permissions = ref.watch(permissionProvider);
-      final userRole = ref.watch(userRoleProvider);
-      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-      return _Sidebar(
-        permissions: permissions,
-        userRole: userRole,
-        isDarkMode: isDarkMode,
-      );
-    });
-  }
-}
-
-class _Sidebar extends ConsumerStatefulWidget {
-  final Set<String> permissions;
-  final String? userRole;
-  final bool isDarkMode;
-
-  const _Sidebar({
-    required this.permissions,
-    required this.userRole,
-    required this.isDarkMode,
-  });
-
-  @override
-  ConsumerState<_Sidebar> createState() => _SidebarState();
-}
-
-class _SidebarState extends ConsumerState<_Sidebar> {
-  bool _isSidebarCollapsed = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSidePanel(
+      BuildContext context, WidgetRef ref, String email, String role) {
     final l10n = AppLocalizations.of(context)!;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: _isSidebarCollapsed ? 70 : 240,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withOpacity(0.05),
-            blurRadius: 2,
-            offset: const Offset(1, 0),
-          ),
-        ],
-      ),
+    final bool isDrawer =
+        context.findAncestorWidgetOfExactType<Drawer>() != null;
+
+    // Get user permissions instead of relying on roles
+    final permissions = ref.watch(permissionProvider);
+
+    // Log permissions for debugging
+    _log.info('User role: $role, Permissions: ${permissions.toString()}');
+
+    final bool isEmployee = role == AppConstants.roleEmployee;
+    final bool isAdmin = role == AppConstants.roleAdmin;
+
+    // Check specific permissions - ensure admin always has user management
+    final canManageUsers = isAdmin ||
+        permissions.contains(AppConstants.permissionCreateUser) ||
+        permissions.contains(AppConstants.permissionReadUser) ||
+        permissions.contains(AppConstants.permissionUpdateUser) ||
+        permissions.contains(AppConstants.permissionDeleteUser);
+
+    final canManageProjects =
+        permissions.contains(AppConstants.permissionCreateProject) ||
+            permissions.contains(AppConstants.permissionUpdateProject) ||
+            permissions.contains(AppConstants.permissionDeleteProject);
+
+    final canManageRoutines =
+        permissions.contains(AppConstants.permissionCreateRoutine) ||
+            permissions.contains(AppConstants.permissionUpdateRoutine) ||
+            permissions.contains(AppConstants.permissionDeleteRoutine);
+
+    final canViewProjects =
+        permissions.contains(AppConstants.permissionReadProject);
+    final canViewRoutines =
+        permissions.contains(AppConstants.permissionReadRoutine);
+    final canViewReports =
+        permissions.contains(AppConstants.permissionViewReports);
+
+    _log.info(
+        'canManageUsers: $canManageUsers, isEmployee: $isEmployee, canViewProjects: $canViewProjects, canViewRoutines: $canViewRoutines');
+
+    // Google Play Console style colors
+    final primaryColor = const Color(0xFF1967D2);
+    final selectedBgColor = const Color(0xFFE8F0FE);
+    final hoverColor = const Color(0xFFF1F3F4);
+
+    return Container(
+      width: isDrawer ? null : 256,
+      color: const Color(0xFFF8FAFD), // Changed to #f8fafd as per reference
+      margin: isDrawer
+          ? null
+          : const EdgeInsets.only(right: 2), // Subtle separation
       child: Column(
         children: [
-          _buildSidebarHeader(widget.isDarkMode),
-          const SizedBox(height: 32),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildSidebarItem(
-                    icon: Icons.dashboard_outlined,
-                    title: l10n.dashboardTitle,
-                    route: '/dashboard',
-                    isDarkMode: widget.isDarkMode,
+          // Google Play Console style header
+          Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  if (widget.permissions.contains('update_routine_status'))
-                    _buildSidebarItem(
-                      icon: Icons.task_outlined,
-                      title: l10n.myRoutinesTitle,
-                      route: '/my-routines',
-                      isDarkMode: widget.isDarkMode,
+                  child: const Center(
+                    child: Icon(
+                      Icons.task_alt,
+                      color: Colors.white,
+                      size: 16,
                     ),
-                  if (widget.permissions.contains('update_project_status'))
-                    _buildSidebarItem(
-                      icon: Icons.work_outline,
-                      title: l10n.myProjectsTitle,
-                      route: '/my-projects',
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                  if (widget.permissions.contains('update_routine') ||
-                      widget.permissions.contains('create_routine'))
-                    _buildSidebarItem(
-                      icon: Icons.task_outlined,
-                      title: l10n.routinesTitle,
-                      route: '/routines',
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                  if (widget.permissions.contains('create_project') ||
-                      widget.permissions.contains('update_project'))
-                    _buildSidebarItem(
-                      icon: Icons.work_outline,
-                      title: l10n.projectsTitle,
-                      route: '/projects',
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                  if (widget.permissions.contains('manage_users'))
-                    _buildSidebarItem(
-                      icon: Icons.people,
-                      title: l10n.usersTitle,
-                      route: '/users',
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                  if (widget.permissions.contains('view_reports'))
-                    _buildSidebarItem(
-                      icon: Icons.bar_chart,
-                      title: l10n.reportsTitle,
-                      route: '/reports',
-                      isDarkMode: widget.isDarkMode,
-                    ),
-                ],
-              ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'TaskFy',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF202124),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const SizedBox(height: 8),
+                _buildNavItem(
+                  context,
+                  icon: Icons.dashboard_outlined,
+                  title: l10n.dashboardTitle,
+                  route: '/dashboard',
+                  primaryColor: primaryColor,
+                  selectedBgColor: selectedBgColor,
+                  hoverColor: hoverColor,
+                ),
 
-  Widget _buildSidebarHeader(bool isDarkMode) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(
-              _isSidebarCollapsed ? Icons.menu : Icons.menu_open,
-              color: Theme.of(context).colorScheme.onSurface,
+                // Always show My Projects to employees (they have read permission)
+                if (isEmployee || canViewProjects)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.work_outline,
+                    title: l10n.myProjectsTitle,
+                    route: '/my-projects',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+
+                // Always show My Routines to employees (they have read permission)
+                if (isEmployee || canViewRoutines)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.repeat,
+                    title: l10n.myRoutinesTitle,
+                    route: '/my-routines',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+
+                // Management section - hide for regular employees
+                if (!isEmployee &&
+                    (canManageProjects ||
+                        canManageRoutines ||
+                        canManageUsers ||
+                        isAdmin))
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 16, 24, 8),
+                    child: Text(
+                      'MANAGEMENT',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF5F6368),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
+                if (canManageProjects)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.folder_outlined,
+                    title: l10n.projectsTitle,
+                    route: '/projects',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+
+                if (canManageRoutines)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.repeat_outlined,
+                    title: l10n.routinesTitle,
+                    route: '/routines',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+
+                if (canManageUsers || isAdmin)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.people_outline,
+                    title: l10n.userManagementTitle,
+                    route: '/users',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+
+                if (canViewReports)
+                  _buildNavItem(
+                    context,
+                    icon: Icons.bar_chart_outlined,
+                    title: l10n.reportsTitle,
+                    route: '/reports',
+                    primaryColor: primaryColor,
+                    selectedBgColor: selectedBgColor,
+                    hoverColor: hoverColor,
+                  ),
+              ],
             ),
-            style: IconButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
-              backgroundColor: Colors.transparent,
-            ),
-            onPressed: () {
-              setState(() {
-                _isSidebarCollapsed = !_isSidebarCollapsed;
-              });
+          ),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE1E3E6)),
+          _buildNavItem(
+            context,
+            icon: Icons.logout,
+            title: l10n.logoutButton,
+            onTap: () {
+              ref.read(authProvider.notifier).signOut();
+              context.go('/login');
             },
+            primaryColor: primaryColor,
+            selectedBgColor: selectedBgColor,
+            hoverColor: hoverColor,
+            isBottomItem: true,
           ),
-          if (!_isSidebarCollapsed) ...[            
-            const SizedBox(width: 8),
-            Text(
-              l10n.appTitle,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildSidebarItem({
+  Widget _buildNavItem(
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? route,
     VoidCallback? onTap,
-    required bool isDarkMode,
+    required Color primaryColor,
+    required Color selectedBgColor,
+    required Color hoverColor,
+    bool isBottomItem = false,
   }) {
-    final isActive =
-        route != null && GoRouterState.of(context).uri.path == route;
-    final activeColor = Theme.of(context).colorScheme.primary;
-    final hoverColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.05);
+    final bool isSelected =
+        route != null && GoRouterState.of(context).matchedLocation == route;
+    final iconColor = isSelected ? primaryColor : const Color(0xFF5F6368);
+    final textColor = isSelected ? primaryColor : const Color(0xFF3C4043);
+    final bgColor = isSelected ? selectedBgColor : Colors.transparent;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap ?? (route != null ? () => context.go(route) : null),
-        hoverColor: hoverColor,
-        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          decoration: BoxDecoration(
-            color: isActive ? activeColor.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? activeColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+    return InkWell(
+      onTap: onTap ?? (route != null ? () => context.go(route) : null),
+      hoverColor: hoverColor,
+      child: Container(
+        height: 48,
+        color: bgColor,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                fontSize: 14,
               ),
-              if (!_isSidebarCollapsed) ...[                
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    color: isActive ? activeColor : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
+  Widget _buildUserMenu(
+      BuildContext context, WidgetRef ref, String email, String role) {
+    // Google Play Console style user menu
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 48),
+      position: PopupMenuPosition.under,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: const Color(0xFF1967D2),
+              radius: 16,
+              child: Text(
+                email.isNotEmpty ? email[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  email.split('@').first,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF3C4043),
+                      fontSize: 14),
+                ),
+                Text(
+                  role,
+                  style: const TextStyle(
+                    color: Color(0xFF5F6368),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down,
+                size: 18, color: Color(0xFF5F6368)),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: Row(
+            children: [
+              const Icon(Icons.logout, size: 18, color: Color(0xFF5F6368)),
+              const SizedBox(width: 12),
+              Text(AppLocalizations.of(context)!.logoutButton,
+                  style:
+                      const TextStyle(fontSize: 14, color: Color(0xFF3C4043))),
+            ],
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        if (value == 'logout') {
+          ref.read(authProvider.notifier).signOut();
+          context.go('/login');
+        }
+      },
+    );
+  }
+}

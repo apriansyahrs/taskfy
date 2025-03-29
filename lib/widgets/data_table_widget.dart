@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
 
 class DataTableWidget extends StatelessWidget {
   final List<DataColumn> columns;
@@ -18,30 +19,38 @@ class DataTableWidget extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge)
+      ),
       child: Padding(
-        padding: EdgeInsets.all(isSmallScreen ? StyleGuide.paddingSmall : StyleGuide.paddingMedium),
+        padding: EdgeInsets.all(
+          isSmallScreen ? StyleGuide.paddingSmall : StyleGuide.paddingMedium
+        ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            horizontalMargin: isSmallScreen ? StyleGuide.paddingSmall : StyleGuide.paddingLarge,
-            columnSpacing: isSmallScreen ? StyleGuide.spacingLarge : StyleGuide.spacingLarge * 2,
+            horizontalMargin: isSmallScreen 
+                ? StyleGuide.paddingSmall 
+                : StyleGuide.paddingLarge,
+            columnSpacing: isSmallScreen 
+                ? StyleGuide.spacingLarge 
+                : StyleGuide.spacingLarge * 2,
             headingRowHeight: isSmallScreen ? 48.0 : 56.0,
             dataRowMinHeight: isSmallScreen ? 48.0 : 56.0,
             headingTextStyle: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: ThemeConfig.textPrimary,
             ),
             dataTextStyle: TextStyle(
               fontFamily: 'Inter',
-              color: Theme.of(context).colorScheme.onSurface,
+              color: ThemeConfig.titleTextColor,
             ),
             columns: columns,
             rows: rows,
             border: TableBorder(
               horizontalInside: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.2),
+                color: ThemeConfig.dividerColor.withOpacity(0.5),
               ),
             ),
           ),
