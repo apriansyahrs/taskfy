@@ -146,14 +146,14 @@ class Project {
   }
 
   Map<String, dynamic> toJson() {
-    // Create the base JSON without attachments to avoid database schema errors
-    final json = {
+    // Ensure we're using the exact field names expected by the database
+    return {
       'id': id,
       'name': name,
       'description': description,
       'status': status,
       'priority': priority,
-      'team_members': teamMembers,
+      'team_members': teamMembers, // Make sure this matches the database column name
       'start_date': startDate.toIso8601String(),
       'end_date': endDate.toIso8601String(),
       'completion': completion,
@@ -161,15 +161,9 @@ class Project {
       'updated_by': updatedBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      // Only include attachments if not empty
+      if (attachments.isNotEmpty) 'attachments': attachments,
     };
-    
-    // Only add attachments if it's not empty, to avoid issues with missing columns
-    if (attachments.isNotEmpty) {
-      // This will only be used if the database schema has been updated to include attachments
-      json['attachments'] = attachments;
-    }
-    
-    return json;
   }
 
   Project copyWith({

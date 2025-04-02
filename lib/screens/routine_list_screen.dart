@@ -55,14 +55,13 @@ class _RoutineListScreenState extends ConsumerState<RoutineListScreen> {
     return AppLayout(
       title: l10n.appTitle,
       pageTitle: l10n.routinesTitle,
-      actions: [
-        if (permissions.contains(AppConstants.permissionCreateRoutine))
-          ElevatedButton.icon(
+      floatingActionButton: permissions.contains(AppConstants.permissionCreateRoutine)
+        ? FloatingActionButton.extended(
             icon: const Icon(Icons.add),
             label: Text(l10n.createRoutineButton),
             onPressed: () => context.go('${AppConstants.routinesRoute}/create'),
-          ),
-      ],
+          )
+        : null,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

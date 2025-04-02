@@ -16,6 +16,7 @@ class AppLayout extends ConsumerWidget {
   final String pageTitle;
   final Widget child;
   final List<Widget>? actions;
+  final FloatingActionButton? floatingActionButton;
 
   const AppLayout({
     super.key,
@@ -23,6 +24,7 @@ class AppLayout extends ConsumerWidget {
     required this.pageTitle,
     required this.child,
     this.actions,
+    this.floatingActionButton,
   });
 
   @override
@@ -40,7 +42,6 @@ class AppLayout extends ConsumerWidget {
               iconTheme: const IconThemeData(color: ThemeConfig.textPrimary),
               titleTextStyle: StyleGuide.titleStyle,
               actions: [
-                if (actions != null) ...actions!,
                 SizedBox(width: StyleGuide.spacingSmall),
                 _buildUserMenu(
                     context, ref, user?.email ?? '', user?.role ?? ''),
@@ -77,6 +78,7 @@ class AppLayout extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButton: floatingActionButton,
     );
   }
 
@@ -107,7 +109,6 @@ class AppLayout extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          if (actions != null) ...actions!,
           const SizedBox(width: 16),
           _buildUserMenu(context, ref, email, role),
         ],

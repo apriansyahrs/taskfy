@@ -13,7 +13,7 @@ class SupabaseClientWrapper {
   Future<void> initialize() async {
     await Supabase.initialize(
       url: 'https://sskgxpvyhdvlphoyrbft.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNza2d4cHZ5aGR2bHBob3lyYmZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3MDIxMTIsImV4cCI6MjA1NTI3ODExMn0.bueTQnA3LoMDnQGnA3nr2vCtQeeta18nnGvjXr-vVo4',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNza2d4cHZ5aGR2bHBob3lyYmZ0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTcwMjExMiwiZXhwIjoyMDU1Mjc4MTEyfQ.g_LKqO5rzqVX156XyY0u-9bumbnqTGIQD4-nut-K34g',
     );
     _client = Supabase.instance.client;
   }

@@ -51,14 +51,13 @@ class _UserListScreenState extends ConsumerState<UserListScreen> {
     return AppLayout(
       title: l10n.appTitle,
       pageTitle: l10n.userManagementTitle,
-      actions: [
-        if (isUserAdmin || permissions.contains('create_user'))
-          ElevatedButton.icon(
+      floatingActionButton: (isUserAdmin || permissions.contains('create_user')) 
+        ? FloatingActionButton.extended(
             icon: const Icon(Icons.person_add),
             label: Text(l10n.addUserButton),
             onPressed: () => context.go('/users/create'),
-          ),
-      ],
+          )
+        : null,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

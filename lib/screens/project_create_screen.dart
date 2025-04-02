@@ -29,6 +29,7 @@ class ProjectCreateScreen extends ConsumerStatefulWidget {
 }
 
 class _ProjectCreateScreenState extends ConsumerState<ProjectCreateScreen> {
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -62,10 +63,7 @@ class _ProjectCreateScreenState extends ConsumerState<ProjectCreateScreen> {
       ],
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: StyleGuide.paddingXLarge,
-            vertical: StyleGuide.paddingLarge,
-          ),
+          padding: const EdgeInsets.all(0),
           child: Form(
             key: _formKey,
             child: Column(

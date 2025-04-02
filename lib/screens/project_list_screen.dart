@@ -9,9 +9,12 @@ import 'package:taskfy/providers/permission_provider.dart';
 import 'package:taskfy/providers/auth_provider.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:taskfy/config/theme_config.dart';
 import 'package:taskfy/widgets/error_widget.dart';
+import 'package:taskfy/widgets/data_table_widget.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../widgets/stat_card.dart';
 
@@ -49,21 +52,25 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
     return AppLayout(
       title: AppLocalizations.of(context)!.appTitle,
       pageTitle: AppLocalizations.of(context)!.projectsTitle,
-      actions: [
-        if (permissions.contains(AppConstants.permissionCreateProject))
-          ElevatedButton.icon(
-            icon: Icon(Icons.add),
+      floatingActionButton: permissions.contains(AppConstants.permissionCreateProject)
+        ? FloatingActionButton.extended(
+            icon: const Icon(Icons.add),
             label: Text(AppLocalizations.of(context)!.createProjectButton),
             onPressed: () => context.go('${AppConstants.projectsRoute}/create'),
-          ),
-      ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildStatCards(projectsAsyncValue),
-          SizedBox(height: StyleGuide.spacingLarge),
-          _buildProjectList(context, projectsAsyncValue, permissions),
-        ],
+            backgroundColor: ThemeConfig.accentColor,
+            foregroundColor: Colors.white,
+          )
+        : null,
+      child: Padding(
+        padding: EdgeInsets.all(0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatCards(projectsAsyncValue),
+            SizedBox(height: StyleGuide.spacingLarge),
+            _buildProjectList(context, projectsAsyncValue, permissions),
+          ],
+        ),
       ),
     );
   }
@@ -71,13 +78,19 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
   Widget _buildStatCards(AsyncValue<List<Project>> projectsAsyncValue) {
     return projectsAsyncValue.when(
       data: (projects) => _StatCards(projects: projects),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: ThemeConfig.accentColor)
+      ),
       error: (err, stack) => CustomErrorWidget(message: err.toString()),
     );
   }
 
   Widget _buildProjectList(BuildContext context, AsyncValue<List<Project>> projectsAsyncValue, Set<String> permissions) {
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(StyleGuide.borderRadiusLarge),
+        side: const BorderSide(color: ThemeConfig.border),
+      ),
       child: Padding(
         padding: EdgeInsets.all(StyleGuide.paddingLarge),
         child: Column(
@@ -87,11 +100,11 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.projectListTitle,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: StyleGuide.titleStyle,
                 ),
-                Spacer(),
+                const Spacer(),
                 SizedBox(
-                  width: 200,
+                  width: 240,
                   child: TextField(
                     decoration: StyleGuide.inputDecoration(
                       labelText: AppLocalizations.of(context)!.searchProjectsPlaceholder,
@@ -105,7 +118,7 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                   ),
                 ),
               ],
-            ),
+            ).animate().fadeIn(duration: 400.ms).moveX(begin: -20, end: 0),
             SizedBox(height: StyleGuide.spacingMedium),
             projectsAsyncValue.when(
               data: (projects) {
@@ -116,7 +129,25 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                 ).toList();
 
                 return filteredProjects.isEmpty
-                    ? Center(child: Text(AppLocalizations.of(context)!.noDataFound))
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(StyleGuide.paddingLarge),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 48, 
+                                color: ThemeConfig.labelTextColor.withOpacity(0.5),
+                              ),
+                              SizedBox(height: StyleGuide.spacingMedium),
+                              Text(
+                                AppLocalizations.of(context)!.noDataFound,
+                                style: StyleGuide.subtitleStyle,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ).animate().fade(duration: 400.ms)
                     : _ProjectTable(
                         projects: filteredProjects,
                         permissions: permissions,
@@ -125,13 +156,18 @@ class _ProjectListScreenState extends ConsumerState<ProjectListScreen> {
                         },
                       );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(80.0),
+                  child: CircularProgressIndicator(color: ThemeConfig.accentColor),
+                ),
+              ),
               error: (err, stack) => CustomErrorWidget(message: err.toString()),
             ),
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(duration: 600.ms).moveY(begin: 20, end: 0);
   }
 }
 
@@ -144,22 +180,32 @@ class _StatCards extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < StyleGuide.breakpointTablet;
+        final cardWidth = isSmallScreen
+            ? constraints.maxWidth
+            : (constraints.maxWidth - (3 * StyleGuide.spacingMedium)) / 4;
+            
         return Wrap(
-          spacing: 16,
-          runSpacing: 16,
+          spacing: StyleGuide.spacingMedium,
+          runSpacing: StyleGuide.spacingMedium,
           children: [
-            _buildStatCard('Total Projects', projects.length.toString(), Icons.work, Colors.blue, constraints),
-            _buildStatCard('In Progress', projects.where((p) => p.status == AppConstants.projectStatusInProgress).length.toString(), Icons.pending_actions, Colors.orange, constraints),
-            _buildStatCard('Completed', projects.where((p) => p.status == AppConstants.projectStatusCompleted).length.toString(), Icons.check_circle, Colors.green, constraints),
-            _buildStatCard('On Hold', projects.where((p) => p.status == AppConstants.projectStatusOnHold).length.toString(), Icons.pause_circle, Colors.red, constraints),
+            _buildStatCard('Total Projects', projects.length.toString(), Icons.work, ThemeConfig.infoColor, cardWidth, 0),
+            _buildStatCard('In Progress', 
+              projects.where((p) => p.status == AppConstants.projectStatusInProgress).length.toString(), 
+              Icons.pending_actions, ThemeConfig.warningColor, cardWidth, 1),
+            _buildStatCard('Completed', 
+              projects.where((p) => p.status == AppConstants.projectStatusCompleted).length.toString(), 
+              Icons.check_circle, ThemeConfig.successColor, cardWidth, 2),
+            _buildStatCard('On Hold', 
+              projects.where((p) => p.status == AppConstants.projectStatusOnHold).length.toString(), 
+              Icons.pause_circle, ThemeConfig.errorColor, cardWidth, 3),
           ],
         );
       },
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, BoxConstraints constraints) {
-    final cardWidth = (constraints.maxWidth - (3 * 16)) / 4;
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, double cardWidth, int index) {
     return SizedBox(
       width: cardWidth,
       child: StatCard(
@@ -168,7 +214,9 @@ class _StatCards extends StatelessWidget {
         icon: icon,
         color: color,
       ),
-    );
+    ).animate()
+     .fadeIn(duration: 400.ms, delay: Duration(milliseconds: 100 * index))
+     .moveY(begin: 20, end: 0, delay: Duration(milliseconds: 100 * index));
   }
 }
 
@@ -185,36 +233,33 @@ class _ProjectTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Name')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Team')),
-                DataColumn(label: Text('Start Date')),
-                DataColumn(label: Text('End Date')),
-                DataColumn(label: Text('Progress')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: projects.map((project) => _buildProjectRow(context, project)).toList(),
-            ),
-          ),
-        );
-      },
+    return SizedBox(
+      width: double.infinity, // Make the table stretch to full width
+      child: DataTableWidget(
+        columns: [
+          const DataColumn(label: Text('Name')),
+          const DataColumn(label: Text('Status')),
+          const DataColumn(label: Text('Team')),
+          const DataColumn(label: Text('Start Date')),
+          const DataColumn(label: Text('End Date')),
+          const DataColumn(label: Text('Progress')),
+          const DataColumn(label: Text('Actions')),
+        ],
+        rows: List.generate(
+          projects.length,
+          (index) => _buildProjectRow(context, projects[index], index),
+        ),
+        emptyMessage: AppLocalizations.of(context)!.noDataFound,
+      ),
     );
   }
 
-  DataRow _buildProjectRow(BuildContext context, Project project) {
+  DataRow _buildProjectRow(BuildContext context, Project project, int index) {
     return DataRow(
       cells: [
         DataCell(
           Container(
-            constraints: BoxConstraints(maxWidth: 200),
+            constraints: const BoxConstraints(maxWidth: 200),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -223,13 +268,11 @@ class _ProjectTable extends StatelessWidget {
                   project.name,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
+                  style: StyleGuide.subtitleStyle,
                 ),
                 Text(
                   project.description,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: StyleGuide.smallLabelStyle,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
                 ),
@@ -241,7 +284,7 @@ class _ProjectTable extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(
               horizontal: StyleGuide.paddingSmall,
-              vertical: StyleGuide.paddingSmall / 2,
+              vertical: StyleGuide.paddingTiny,
             ),
             decoration: BoxDecoration(
               color: _getStatusColor(project.status).withOpacity(0.1),
@@ -249,40 +292,63 @@ class _ProjectTable extends StatelessWidget {
             ),
             child: Text(
               project.status,
-              style: TextStyle(color: _getStatusColor(project.status)),
+              style: TextStyle(
+                color: _getStatusColor(project.status),
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
         DataCell(
           Wrap(
-            spacing: 4,
+            spacing: StyleGuide.spacingTiny,
             children: project.teamMembers
                 .take(3)
-                .map((member) => CircleAvatar(
-                      radius: 12,
-                      child: Text(
-                        member[0].toUpperCase(),
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    ))
+                .map((member) => StyleGuide.userAvatar(member))
                 .toList(),
           ),
         ),
-        DataCell(Text(DateFormat('MMM d, y').format(project.startDate))),
-        DataCell(Text(DateFormat('MMM d, y').format(project.endDate))),
+        DataCell(Text(
+          DateFormat('MMM d, y').format(project.startDate),
+          style: const TextStyle(fontSize: 13),
+        )),
+        DataCell(Text(
+          DateFormat('MMM d, y').format(project.endDate),
+          style: const TextStyle(fontSize: 13),
+        )),
         DataCell(
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${project.completion.round()}%'),
-              SizedBox(height: 4),
-              LinearProgressIndicator(
-                value: project.completion / 100,
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation(
-                  _getProgressColor(project.completion),
+              Text(
+                '${project.completion.round()}%',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: ThemeConfig.dividerColor,
+                      borderRadius: BorderRadius.circular(StyleGuide.borderRadiusSmall),
+                    ),
+                  ),
+                  Container(
+                    width: project.completion,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: _getProgressColor(project.completion),
+                      borderRadius: BorderRadius.circular(StyleGuide.borderRadiusSmall),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -293,19 +359,44 @@ class _ProjectTable extends StatelessWidget {
             children: [
               // View button - always visible for all users
               IconButton(
-                icon: Icon(Icons.visibility),
+                icon: const Icon(Icons.visibility_outlined, size: 20),
                 tooltip: 'View Project Details',
                 onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}'),
+                style: IconButton.styleFrom(
+                  backgroundColor: ThemeConfig.selectedBgColor,
+                  foregroundColor: ThemeConfig.accentColor,
+                ),
               ),
+              // Edit button - visible for users with edit permission
+              if (permissions.contains(AppConstants.permissionUpdateProject))
+                Padding(
+                  padding: EdgeInsets.only(left: StyleGuide.spacingSmall),
+                  child: IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    tooltip: 'Edit Project',
+                    onPressed: () => context.go('${AppConstants.projectsRoute}/${project.id}/edit'),
+                    style: IconButton.styleFrom(
+                      backgroundColor: ThemeConfig.infoColor.withOpacity(0.1),
+                      foregroundColor: ThemeConfig.infoColor,
+                    ),
+                  ),
+                ),
               if (permissions.contains(AppConstants.permissionDeleteProject))
-                IconButton(
-                  icon: Icon(Icons.delete),
-                  tooltip: 'Delete Project',
-                  onPressed: () {
-                    if (project.id.isNotEmpty) {
-                      _showDeleteProjectDialog(context, project.id);
-                    }
-                  },
+                Padding(
+                  padding: EdgeInsets.only(left: StyleGuide.spacingSmall),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: 'Delete Project',
+                    onPressed: () {
+                      if (project.id.isNotEmpty) {
+                        _showDeleteProjectDialog(context, project.id);
+                      }
+                    },
+                    style: IconButton.styleFrom(
+                      backgroundColor: ThemeConfig.errorColor.withOpacity(0.1),
+                      foregroundColor: ThemeConfig.errorColor,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -317,31 +408,40 @@ class _ProjectTable extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case AppConstants.projectStatusCompleted:
-        return Colors.green;
+        return ThemeConfig.successColor;
       case AppConstants.projectStatusInProgress:
-        return Colors.blue;
+        return ThemeConfig.infoColor;
       case AppConstants.projectStatusOnHold:
-        return Colors.orange;
+        return ThemeConfig.warningColor;
       case AppConstants.projectStatusCancelled:
-        return Colors.red;
+        return ThemeConfig.errorColor;
       default:
-        return Colors.grey;
+        return ThemeConfig.accentColor;
     }
   }
 
   Color _getProgressColor(double progress) {
-    if (progress >= 75) return Colors.green;
-    if (progress >= 50) return Colors.blue;
-    if (progress >= 25) return Colors.orange;
-    return Colors.red;
+    if (progress >= 75) return ThemeConfig.successColor;
+    if (progress >= 50) return ThemeConfig.infoColor;
+    if (progress >= 25) return ThemeConfig.warningColor;
+    return ThemeConfig.errorColor;
   }
   
   void _showDeleteProjectDialog(BuildContext context, String projectId) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Project'),
-        content: const Text('Are you sure you want to delete this project?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(StyleGuide.borderRadiusXLarge),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: ThemeConfig.errorColor),
+            SizedBox(width: StyleGuide.spacingSmall),
+            const Text('Delete Project'),
+          ],
+        ),
+        content: const Text('Are you sure you want to delete this project? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -354,16 +454,27 @@ class _ProjectTable extends StatelessWidget {
               try {
                 await onDelete(projectId);
                 scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Project deleted successfully')),
+                  const SnackBar(
+                    content: Text('Project deleted successfully'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               } catch (e) {
                 scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('Error: ${e.toString()}')),
+                  SnackBar(
+                    content: Text('Error: ${e.toString()}'),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: ThemeConfig.errorColor,
+                  ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              backgroundColor: ThemeConfig.errorColor,
+              foregroundColor: ThemeConfig.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(StyleGuide.borderRadiusMedium),
+              ),
             ),
             child: const Text('Delete'),
           ),

@@ -124,13 +124,7 @@ class DashboardScreen extends ConsumerWidget {
                 );
               },
             ),
-            SizedBox(height: StyleGuide.spacingLarge),
-            Text(
-              AppLocalizations.of(context)!.statusLabel,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
             SizedBox(height: StyleGuide.spacingMedium),
-            SizedBox(height: StyleGuide.spacingLarge),
             Text(
               AppLocalizations.of(context)!.projectListTitle,
               style: Theme.of(context).textTheme.headlineSmall,

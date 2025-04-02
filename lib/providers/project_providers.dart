@@ -93,12 +93,37 @@ class ProjectNotifier extends StateNotifier<AsyncValue<Project?>> {
   Future<void> updateProject(Project project) async {
     state = const AsyncValue.loading();
     try {
+      _log.info('Updating project: ${project.toJson()}');
+      
+      // Make sure we're using the correct column names for Supabase
+      final projectData = {
+        'id': project.id,
+        'name': project.name,
+        'description': project.description,
+        'status': project.status,
+        'priority': project.priority,
+        'team_members': project.teamMembers,
+        'start_date': project.startDate.toIso8601String(),
+        'end_date': project.endDate.toIso8601String(),
+        'completion': project.completion,
+        'created_by': project.createdBy,
+        'updated_by': project.updatedBy,
+        'created_at': project.createdAt.toIso8601String(),
+        'updated_at': project.updatedAt.toIso8601String(),
+      };
+      
+      if (project.attachments.isNotEmpty) {
+        projectData['attachments'] = project.attachments;
+      }
+      
       await _supabase
           .from('projects')
-          .update(project.toJson())
+          .update(projectData)
           .eq('id', project.id);
-      state = AsyncValue.data(project);
+          
+      // Verify update was successful
       _log.info('Project updated successfully: ${project.name}');
+      state = AsyncValue.data(project);
     } catch (e, stack) {
       _log.warning('Failed to update project: $e');
       state = AsyncValue.error(e, stack);

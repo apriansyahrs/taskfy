@@ -134,7 +134,8 @@ class StyleGuide {
   static const double breakpointTablet = 768;
   static const double breakpointDesktop = 900;
 
-  static var cardElevation; // Based on isSmallScreen in app_layout
+  /// Standard card elevation for consistency across the app
+  static const double cardElevation = 0;
 
   /// Standard error style based on app_layout colors
   static TextStyle errorTextStyle(BuildContext context) {
