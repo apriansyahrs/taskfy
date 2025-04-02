@@ -24,6 +24,9 @@ class PermissionNotifier extends StateNotifier<Set<String>> {
   bool hasAllPermissions(List<String> permissions) {
     return permissions.every((permission) => state.contains(permission));
   }
+
+  // Add a method to get current permissions
+  Set<String> get currentPermissions => state;
 }
 
 final permissionProvider =
@@ -35,10 +38,10 @@ final permissionProvider =
   if (user != null) {
     _log.info(
         'Setting permissions for user ${user.email} with role ${user.role}');
-    
+
     // Default permissions based on user role
     List<String> rolePermissions = [];
-    
+
     // Ensure admin always has user management permissions
     if (user.role == AppConstants.roleAdmin) {
       _log.info('Setting admin permissions');
@@ -79,15 +82,15 @@ final permissionProvider =
         AppConstants.permissionViewReports,
       ];
     }
-    
+
     // If user has specific permissions, use those instead
     if (user.permissions.isNotEmpty) {
       permissionNotifier.setPermissionsFromUser(user.permissions);
     } else {
       permissionNotifier.setPermissionsFromUser(rolePermissions);
     }
-    
-    _log.info('Permissions set: ${permissionNotifier.state}');
+
+    _log.info('Permissions set: ${permissionNotifier.currentPermissions}');
   } else {
     _log.info('No user found, setting empty permissions');
     permissionNotifier.setPermissionsFromUser([]);
@@ -100,8 +103,8 @@ final permissionProvider =
 final canManageUsersProvider = Provider<bool>((ref) {
   final permissions = ref.watch(permissionProvider);
   return permissions.contains(AppConstants.permissionCreateUser) ||
-         permissions.contains(AppConstants.permissionUpdateUser) ||
-         permissions.contains(AppConstants.permissionDeleteUser);
+      permissions.contains(AppConstants.permissionUpdateUser) ||
+      permissions.contains(AppConstants.permissionDeleteUser);
 });
 
 final canViewReportsProvider = Provider<bool>((ref) {

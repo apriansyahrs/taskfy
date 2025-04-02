@@ -11,6 +11,10 @@ import 'package:taskfy/services/supabase_client.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:taskfy/config/constants.dart';
 import 'package:taskfy/config/style_guide.dart';
+import 'package:logging/logging.dart';
+
+// Add a logger instance at the top level
+final _logger = Logger('ProjectEditScreen');
 
 final usersProvider = StreamProvider((ref) {
   return getIt<SupabaseClientWrapper>().client
@@ -388,7 +392,6 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       final permissions = ref.read(permissionProvider);
-      final canEditProject = permissions.contains(AppConstants.permissionUpdateProject);
       final currentProject = ref.read(projectProvider(widget.projectId)).value;
 
       if (currentProject == null) {
@@ -426,8 +429,8 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
       );
 
       try {
-        // Add logging to see what's being sent to the database
-        print('Updating project: ${updatedProject.toJson()}');
+        // Replace print with logger
+        _logger.info('Updating project: ${updatedProject.toJson()}');
         
         await ref.read(projectNotifierProvider.notifier).updateProject(updatedProject);
         if (mounted) {
@@ -437,7 +440,8 @@ class _ProjectEditScreenState extends ConsumerState<ProjectEditScreen> {
           );
         }
       } catch (e) {
-        print('Error updating project: $e');
+        // Replace print with logger
+        _logger.severe('Error updating project: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error updating project: $e')),
